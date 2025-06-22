@@ -1,0 +1,6 @@
+configuration_profile:
+  dark_mode: true
+  search_box: hidden
+  file_extensions: shown
+  hidden_files: shown
+  start_menu_alignment: left
