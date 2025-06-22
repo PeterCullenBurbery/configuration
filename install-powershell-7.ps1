@@ -1,0 +1,1 @@
+winget install --id Microsoft.PowerShell --source winget --scope machine --silent --accept-package-agreements --accept-source-agreements
