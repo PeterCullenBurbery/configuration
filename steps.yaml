@@ -1,0 +1,85 @@
+steps:
+  import Powershell module: |
+    import Powershell module.
+
+    Transcript started, output file is C:\terminal-logs\powershell-007-logs\2025-006-022 020.006.000.2885887 America slash New_York 2025-W025-007 2025-173.txt
+    2025-006-022 020.006.001.1570831 America/New_York 2025-W025-007 2025-173
+    C:\Users\Administrator\Desktop\GitHub-repositories\configuration\output> ls
+
+        Directory: C:\Users\Administrator\Desktop\GitHub-repositories\configuration\output
+
+    Mode                 LastWriteTime         Length Name
+    ----                 -------------         ------ ----
+    -a---   2025-06-22-Sunday 19.37.15           4378 MyModule.psd1
+    -a---   2025-06-22-Sunday 19.37.15          39632 MyModule.psm1
+
+    2025-006-022 020.006.002.0234682 America/New_York 2025-W025-007 2025-173
+    C:\Users\Administrator\Desktop\GitHub-repositories\configuration\output>
+
+    We will need these functions later.
+
+    The current list of functions is
+
+    - Set-DarkMode
+    - Set-LightMode
+    - Set-StartMenuToLeft
+    - Set-StartMenuToCenter
+    - Set-ShowFileExtensions
+    - Set-HideFileExtensions
+    - Set-ShowHiddenFiles
+    - Set-HideHiddenFiles
+    - Set-HideSearchBox
+    - Set-ShowSearchBox
+    - Set-ShowSecondsInTaskbar
+    - Set-HideSecondsInTaskbar
+    - Set-CustomShortDatePattern
+    - Reset-ShortDatePattern
+    - Set-CustomLongDatePattern
+    - Reset-LongDatePattern
+    - Set-CustomTimePattern
+    - Reset-TimePatternToDefault
+    - Set-24HourTimeFormat
+    - Reset-12HourTimeFormat
+    - Set-FirstDayOfWeekMonday
+    - Set-FirstDayOfWeekSunday
+    - Get-IanaTimeZone
+    - Get-IsoWeekDate
+    - Get-IsoOrdinalDate
+    - prompt
+    - Add-ToPath
+    - Remove-FromPath
+    - Add-ToPSModulePath
+    - Remove-FromPSModulePath
+    - Add-DomainAdminUser
+    - Test-Is64Bit
+    - Install-PowerShell7
+    - Install-VSCode
+  read config.yaml: |
+    read config.yaml. For example,
+
+    2025-006-022 020.006.048.2310379 America/New_York 2025-W025-007 2025-173
+    C:\Users\Administrator\Desktop\GitHub-repositories\configuration> ls
+
+        Directory: C:\Users\Administrator\Desktop\GitHub-repositories\configuration
+
+    Mode                 LastWriteTime         Length Name
+    ----                 -------------         ------ ----
+    d----   2025-06-22-Sunday 18.59.46                go-projects
+    d----   2025-06-22-Sunday 19.38.01                output
+    -a---   2025-06-22-Sunday 15.30.50            144 config.yaml
+    -a---   2025-06-22-Sunday 14.30.58             15 README.md
+    -a---   2025-06-22-Sunday 18.51.21          49343 scripts.yaml
+    -a---   2025-06-22-Sunday 20.06.45           1001 steps.yaml
+
+    2025-006-022 020.006.049.2080453 America/New_York 2025-W025-007 2025-173
+    C:\Users\Administrator\Desktop\GitHub-repositories\configuration> cat config.yaml
+    configuration_profile:
+      dark_mode: true
+      search_box: hidden
+      file_extensions: shown
+      hidden_files: shown
+      start_menu_alignment: left
+    2025-006-022 020.006.052.3779106 America/New_York 2025-W025-007 2025-173
+    C:\Users\Administrator\Desktop\GitHub-repositories\configuration>
+
+    The yaml file determines what Powershell functions will be executed.
