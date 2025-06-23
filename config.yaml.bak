@@ -12,5 +12,3 @@ configuration_profile:
     custom time pattern: on
     24 hour time format: on
     set first day of the week to Monday: on
-  powershell modules: |
-    C:\powershell-modules\
