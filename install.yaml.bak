@@ -1,0 +1,8 @@
+install:
+  Powershell 7:
+  VS code:
+  7zip:
+  voidtools everything:
+  WinSCP:
+  Choco:
+  MobaXTerm:

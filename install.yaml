@@ -1,6 +1,13 @@
 install:
-  Powershell 7:
-  VS code:
-  7zip:
-  voidtools everything:
-  WinSCP:
+  programs to install:
+    - Choco
+    - Powershell 7
+    - VS code
+    - 7zip
+    - voidtools everything
+    - WinSCP
+    - MobaXTerm
+  logs: |
+    C:\logs
+  downloads: |
+    C:\downloads
