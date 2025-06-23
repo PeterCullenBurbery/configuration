@@ -1,6 +1,14 @@
 configuration_profile:
-  dark_mode: true
-  search_box: hidden
-  file_extensions: shown
-  hidden_files: shown
-  start_menu_alignment: left
+  explorer:
+    dark_mode: true
+    search_box: hidden
+    file_extensions: shown
+    hidden_files: shown
+    start_menu_alignment: left
+  date time settings:
+    show seconds in taskbar: on
+    custom short date pattern: on
+    custom long date pattern: on
+    custom time pattern: on
+    24 hour time format: on
+    set first day of the week to Monday: on
