@@ -81,13 +81,13 @@ func main() {
 			timestamp := formatTimestamp()
 			logDir := filepath.Join(globalLogDir, subLog)
 			logFileName := fmt.Sprintf("cherrytree_%s.log", timestamp)
-			logPath := filepath.Join(logDir, logFileName)
-			installPath := filepath.Join(globalDownloadDir, subDownload, "CherryTree")
-			installerPath := filepath.Join(globalDownloadDir, subDownload, "cherrytree_1.5.0.0_win64_setup.exe")
+			cherryLogPath := filepath.Join(logDir, logFileName)
+			cherryInstallPath := filepath.Join(globalDownloadDir, subDownload)
+			installerPath := filepath.Join(cherryInstallPath, "cherrytree_1.5.0.0_win64_setup.exe")
 			installerURL := "https://www.giuspen.net/software/cherrytree_1.5.0.0_win64_setup.exe"
 
 			_ = os.MkdirAll(logDir, os.ModePerm)
-			_ = os.MkdirAll(filepath.Dir(installerPath), os.ModePerm)
+			_ = os.MkdirAll(cherryInstallPath, os.ModePerm)
 
 			if !fileExists(installerPath) {
 				log.Printf("🌐 Downloading CherryTree from: %s", installerURL)
@@ -99,8 +99,8 @@ func main() {
 				log.Println("📁 CherryTree installer already present.")
 			}
 
-			log.Printf("📝 CherryTree log path: %s", logPath)
-			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, logPath, installPath))
+			log.Printf("📝 CherryTree log path: %s", cherryLogPath)
+			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, cherryLogPath, cherryInstallPath))
 		} else {
 			psScript.WriteString(funcName + "\n")
 		}
@@ -121,7 +121,7 @@ func main() {
 	log.Println("✅ Installation complete.")
 }
 
-// Helpers
+// --- Helpers ---
 
 func toInstallFunctionName(label string) string {
 	l := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(label, " ", ""), "-", ""))
