@@ -34,14 +34,23 @@ var mappings = []SettingMapping{
 	{"date time settings.set first day of the week to monday", map[string]string{"on": "Set-FirstDayOfWeekMonday", "off": "Set-FirstDayOfWeekSunday"}},
 }
 
+// Case-insensitive nested lookup
 func getNestedValue(m map[string]interface{}, path string) (interface{}, bool) {
 	parts := strings.Split(path, ".")
 	var current interface{} = m
+
 	for _, part := range parts {
 		if mTyped, ok := current.(map[string]interface{}); ok {
-			if val, exists := mTyped[part]; exists {
-				current = val
-			} else {
+			lowered := strings.ToLower(part)
+			found := false
+			for key, val := range mTyped {
+				if strings.ToLower(key) == lowered {
+					current = val
+					found = true
+					break
+				}
+			}
+			if !found {
 				return nil, false
 			}
 		} else {
@@ -130,5 +139,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ PowerShell execution failed: %v", err)
 	}
+
 	log.Println("✅ PowerShell script executed successfully.")
 }
