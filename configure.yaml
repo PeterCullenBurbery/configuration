@@ -1,0 +1,8 @@
+configure:
+  Windows terminal: |
+    Desktop\GitHub-repositories\configuration\go-projects\configure-settings-for-windows-terminal
+  VS code:
+    VS code: |
+      Desktop\GitHub-repositories\configuration\go-projects\configure-settings-for-vs-code
+    VS code keyboard shortcuts: |
+      Desktop\GitHub-repositories\configuration\go-projects\configure-keyboard-shortcuts-for-vs-code
