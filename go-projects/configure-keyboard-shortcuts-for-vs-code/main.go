@@ -20,6 +20,8 @@ func main() {
 		return
 	}
 
+	// 💡 You can open keyboard shortcuts with:
+	// code $env:appdata\Code\User\keybindings.json
 	keybindingsPath := filepath.Join(appData, "Code", "User", "keybindings.json")
 
 	var existingBindings []Keybinding
