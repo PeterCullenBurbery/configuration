@@ -1,4 +1,4 @@
-module import-read-execute
+module customize-file-explorer
 
 go 1.24.4
 
