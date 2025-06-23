@@ -1,8 +1,22 @@
 install:
-  Powershell 7:
-  VS code:
-  7zip:
-  voidtools everything:
-  WinSCP:
-  Choco:
-  MobaXTerm:
+  programs to install:
+    - Choco
+    - Powershell 7
+    - VS code
+    - 7zip
+    - voidtools everything
+    - WinSCP
+    - MobaXTerm
+    - cherrytree
+  logs:
+    global log directory: |
+      C:\logs
+    per app log directories:
+      cherry tree: |
+        cherry-tree
+  downloads:
+    global download directory: |
+      C:\downloads
+    per app download directories:
+      cherry tree: |
+        cherry-tree
