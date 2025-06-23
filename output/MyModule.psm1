@@ -1297,3 +1297,86 @@ function Install-MobaXterm {
         Write-Error "❌ Failed to install MobaXterm. Error: $_"
     }
 }
+
+function Install-CherryTree {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$log,
+
+        [Parameter(Mandatory = $true)]
+        [string]$installPath
+    )
+
+    # Logging helper
+    function Write-Log {
+        param ([string]$message)
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        "$timestamp`t$message" | Out-File -FilePath $log -Append -Encoding UTF8
+    }
+
+    Write-Host "🚀 Starting CherryTree installation..."
+    Write-Host "📝 Log path: $log"
+    Write-Host "📁 Install path: $installPath"
+
+    # Ensure directories exist
+    $logDir = Split-Path $log -Parent
+    if (-not (Test-Path $logDir)) {
+        New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+    }
+
+    $installDirParent = Split-Path $installPath -Parent
+    if (-not (Test-Path $installDirParent)) {
+        New-Item -ItemType Directory -Path $installDirParent -Force | Out-Null
+    }
+
+    # Define installer
+    $installer = "C:\Users\Administrator\Downloads\cherrytree_1.5.0.0_win64_setup.exe"
+    if (-not (Test-Path $installer)) {
+        Write-Log "❌ Installer not found at $installer"
+        Write-Error "❌ Installer not found at $installer"
+        return
+    }
+
+    # Install arguments
+    $arguments = @(
+        "/VERYSILENT"
+        "/SUPPRESSMSGBOXES"
+        "/NORESTART"
+        "/SP-"
+        "/DIR=$installPath"
+        "/LOG=$log"
+    )
+
+    $start = Get-Date
+    Write-Log "🚀 Install started"
+    Write-Host "⏱️ Start: $start"
+
+    try {
+        Start-Process -FilePath $installer -ArgumentList $arguments -Wait -NoNewWindow
+
+        $end = Get-Date
+        $duration = $end - $start
+
+        Write-Log "✅ Install completed"
+        Write-Log "⏱️ Start: $start"
+        Write-Log "✅ End:   $end"
+        Write-Log "🧮 Duration: $($duration.ToString())"
+
+        Write-Host "✅ End:   $end"
+        Write-Host "🧮 Duration: $($duration.ToString())"
+    } catch {
+        $end = Get-Date
+        $duration = $end - $start
+
+        Write-Log "❌ Install failed: $_"
+        Write-Log "⏱️ Start: $start"
+        Write-Log "❌ End:   $end"
+        Write-Log "🧮 Duration: $($duration.ToString())"
+
+        Write-Error "❌ Installation failed"
+        Write-Host "⏱️ Start: $start"
+        Write-Host "❌ End:   $end"
+        Write-Host "🧮 Duration: $($duration.ToString())"
+    }
+}
