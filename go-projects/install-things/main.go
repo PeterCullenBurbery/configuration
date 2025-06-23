@@ -54,9 +54,9 @@ func main() {
 	logs := getCaseInsensitiveMap(installSection, "logs")
 	downloads := getCaseInsensitiveMap(installSection, "downloads")
 
-	globalLogDir := getNestedString(logs, "global log directory")
+	globalLogDir := strings.TrimSpace(getNestedString(logs, "global log directory"))
 	perAppLogs := getNestedMap(logs, "per app log directories")
-	globalDownloadDir := getNestedString(downloads, "global download directory")
+	globalDownloadDir := strings.TrimSpace(getNestedString(downloads, "global download directory"))
 	perAppDownloads := getNestedMap(downloads, "per app download directories")
 
 	if globalLogDir == "" || globalDownloadDir == "" {
@@ -75,8 +75,8 @@ func main() {
 
 		if strings.EqualFold(funcName, "Install-CherryTree") {
 			appKey := "cherry tree"
-			subLog := getCaseInsensitiveString(perAppLogs, appKey)
-			subDownload := getCaseInsensitiveString(perAppDownloads, appKey)
+			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
+			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 
 			timestamp := formatTimestamp()
 			logDir := filepath.Join(globalLogDir, subLog)
@@ -188,7 +188,6 @@ func getCaseInsensitiveString(m map[string]interface{}, key string) string {
 	return ""
 }
 
-// ✅ Updated to support both scalar strings and 1-element nested maps
 func getNestedString(m map[string]interface{}, key string) string {
 	if val := getCaseInsensitiveString(m, key); val != "" {
 		return val
