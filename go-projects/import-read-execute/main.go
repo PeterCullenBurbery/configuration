@@ -1,10 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -53,61 +56,78 @@ var mappings = []SettingMapping{
 }
 
 func main() {
-	// Allow optional path to config.yaml as CLI arg
-	configPath := "config.yaml"
-	if len(os.Args) > 1 {
-		configPath = os.Args[1]
+	// Define required flags
+	configPath := flag.String("config", "", "Path to the config.yaml file (required)")
+	modulePath := flag.String("module", "", "Path to the PowerShell module (.psm1) file (required)")
+	logPath := flag.String("log", "", "Path to the log file (required)")
+	flag.Parse()
+
+	// Enforce required arguments
+	if *configPath == "" || *modulePath == "" || *logPath == "" {
+		fmt.Println("❌ Error: --config, --module, and --log are all required.")
+		flag.Usage()
+		os.Exit(1)
 	}
 
-	// Load and parse YAML file
-	content, err := os.ReadFile(configPath)
+	// Open log file and set output
+	logFile, err := os.OpenFile(*logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		log.Fatalf("❌ Failed to read %s: %v", configPath, err)
+		fmt.Printf("❌ Failed to open log file %s: %v\n", *logPath, err)
+		os.Exit(1)
+	}
+	defer logFile.Close()
+	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
+
+	log.Println("📄 Reading config:", *configPath)
+	content, err := os.ReadFile(*configPath)
+	if err != nil {
+		log.Fatalf("❌ Failed to read config file: %v", err)
 	}
 
 	var raw map[string]map[string]interface{}
-	err = yaml.Unmarshal(content, &raw)
-	if err != nil {
+	if err := yaml.Unmarshal(content, &raw); err != nil {
 		log.Fatalf("❌ Failed to parse YAML: %v", err)
 	}
 
 	config := raw["configuration_profile"]
 	var psFunctions []string
 
+	log.Println("🔧 Translating configuration to PowerShell functions...")
 	for _, mapping := range mappings {
 		if val, exists := config[mapping.YamlKey]; exists {
 			strVal := fmt.Sprintf("%v", val)
-			if psFunc, ok := mapping.ValueMap[strVal]; ok {
+			if psFunc, ok := mapping.ValueMap[strings.ToLower(strVal)]; ok {
 				psFunctions = append(psFunctions, psFunc)
+				log.Printf("✔️  %s = %s → %s", mapping.YamlKey, strVal, psFunc)
 			} else {
-				log.Printf("⚠️ No match for key %q with value %q", mapping.YamlKey, strVal)
+				log.Printf("⚠️  Unknown value: %s = %s", mapping.YamlKey, strVal)
 			}
 		}
 	}
 
 	if len(psFunctions) == 0 {
-		log.Println("⚠️ No functions to execute from config.")
+		log.Println("⚠️ No PowerShell functions matched. Exiting.")
 		return
 	}
 
-	psScript := "Import-Module ./output/MyModule.psm1\n"
+	psScript := fmt.Sprintf("Import-Module '%s'\n", *modulePath)
 	for _, fn := range psFunctions {
 		psScript += fn + "\n"
 	}
 
 	tempScript := "run.ps1"
-	err = os.WriteFile(tempScript, []byte(psScript), 0644)
-	if err != nil {
-		log.Fatalf("❌ Failed to write PowerShell script: %v", err)
+	if err := os.WriteFile(tempScript, []byte(psScript), 0644); err != nil {
+		log.Fatalf("❌ Failed to write temporary PowerShell script: %v", err)
 	}
+	log.Printf("📝 Wrote script: %s", tempScript)
 
-	fmt.Printf("🚀 Running PowerShell with config %s...\n", configPath)
+	log.Println("🚀 Running PowerShell script...")
 	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", tempScript)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
+	cmd.Stdout = logFile // capture only in log
+	cmd.Stderr = logFile
+	err = cmd.Run()
+	if err != nil {
 		log.Fatalf("❌ PowerShell execution failed: %v", err)
 	}
-	fmt.Println("✅ Configuration complete.")
+	log.Println("✅ PowerShell script executed successfully.")
 }
