@@ -30,8 +30,5 @@
 - Remove-FromPSModulePath
 - Add-DomainAdminUser
 - Test-Is64Bit
-- Install-PowerShell-7
+- Install-PowerShell7
 - Install-VSCode
-- Install-7Zip
-- Install-Voidtools-Everything
-- Install-WinSCP

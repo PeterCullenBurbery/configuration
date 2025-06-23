@@ -35,7 +35,7 @@ func extractFunctionNames(node *yaml.Node, names *[]string) {
 }
 
 func main() {
-	variableName := "names.yaml" // 👈 Easily change output file name here
+	variableName := "names.yaml"
 
 	homeDir, _ := os.UserHomeDir()
 	yamlPath := filepath.Join(homeDir, "Desktop", "GitHub-repositories", "configuration", "scripts.yaml")
@@ -82,7 +82,16 @@ func main() {
 		},
 	}
 
-	// Write to variableName (e.g. names.yaml or names2.yaml)
+	// If output file exists, back it up as .bak (overwrite if .bak exists)
+	if _, err := os.Stat(outputPath); err == nil {
+		backupPath := outputPath + ".bak"
+		if err := os.Rename(outputPath, backupPath); err != nil {
+			panic(fmt.Errorf("❌ Failed to backup existing file: %w", err))
+		}
+		fmt.Printf("📦 Existing file backed up to: %s\n", backupPath)
+	}
+
+	// Write to output file
 	outFile, err := os.Create(outputPath)
 	if err != nil {
 		panic(fmt.Errorf("❌ Failed to create output file: %w", err))

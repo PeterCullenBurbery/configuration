@@ -1135,7 +1135,7 @@ function Test-Is64Bit {
     }
 }
 
-function Install-PowerShell-7 {
+function Install-PowerShell7 {
     [CmdletBinding()]
     param ()
 
@@ -1180,77 +1180,5 @@ function Install-VSCode {
         Write-Host "✅ Visual Studio Code installed successfully."
     } catch {
         Write-Error "❌ Failed to install Visual Studio Code. Error: $_"
-    }
-}
-
-function Install-7Zip {
-    [CmdletBinding()]
-    param ()
-
-    Write-Host "🚀 Starting installation of 7-Zip..."
-
-    $arguments = @(
-        "install"
-        "-e"
-        "--id", "7zip.7zip"
-        "--scope", "machine"
-        "--silent"
-        "--accept-package-agreements"
-        "--accept-source-agreements"
-    )
-
-    try {
-        Start-Process -FilePath "winget" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ 7-Zip installed successfully."
-    } catch {
-        Write-Error "❌ Failed to install 7-Zip. Error: $_"
-    }
-}
-
-function Install-Voidtools-Everything {
-    [CmdletBinding()]
-    param ()
-
-    Write-Host "🚀 Starting installation of Voidtools Everything..."
-
-    $arguments = @(
-        "install"
-        "-e"
-        "--id", "voidtools.Everything"
-        "--scope", "machine"
-        "--silent"
-        "--accept-package-agreements"
-        "--accept-source-agreements"
-    )
-
-    try {
-        Start-Process -FilePath "winget" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ Voidtools Everything installed successfully."
-    } catch {
-        Write-Error "❌ Failed to install Voidtools Everything. Error: $_"
-    }
-}
-
-function Install-WinSCP {
-    [CmdletBinding()]
-    param ()
-
-    Write-Host "🚀 Starting installation of WinSCP..."
-
-    $arguments = @(
-        "install"
-        "-e"
-        "--id", "WinSCP.WinSCP"
-        "--scope", "machine"
-        "--silent"
-        "--accept-package-agreements"
-        "--accept-source-agreements"
-    )
-
-    try {
-        Start-Process -FilePath "winget" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ WinSCP installed successfully."
-    } catch {
-        Write-Error "❌ Failed to install WinSCP. Error: $_"
     }
 }
