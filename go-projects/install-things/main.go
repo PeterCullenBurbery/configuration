@@ -63,9 +63,8 @@ func main() {
 		log.Fatal("❌ Missing 'global log directory' or 'global download directory'.")
 	}
 
-	// Ensure global directories exist
-	_ = os.MkdirAll(globalLogDir, 0755)
-	_ = os.MkdirAll(globalDownloadDir, 0755)
+	_ = os.MkdirAll(globalLogDir, os.ModePerm)
+	_ = os.MkdirAll(globalDownloadDir, os.ModePerm)
 
 	var psScript strings.Builder
 	psScript.WriteString(fmt.Sprintf("Import-Module '%s'\n", *modulePath))
@@ -87,8 +86,8 @@ func main() {
 			installerPath := filepath.Join(globalDownloadDir, subDownload, "cherrytree_1.5.0.0_win64_setup.exe")
 			installerURL := "https://www.giuspen.net/software/cherrytree_1.5.0.0_win64_setup.exe"
 
-			_ = os.MkdirAll(logDir, 0755)
-			_ = os.MkdirAll(filepath.Dir(installerPath), 0755)
+			_ = os.MkdirAll(logDir, os.ModePerm)
+			_ = os.MkdirAll(filepath.Dir(installerPath), os.ModePerm)
 
 			if !fileExists(installerPath) {
 				log.Printf("🌐 Downloading CherryTree from: %s", installerURL)
@@ -189,7 +188,11 @@ func getCaseInsensitiveString(m map[string]interface{}, key string) string {
 	return ""
 }
 
+// ✅ Updated to support both scalar strings and 1-element nested maps
 func getNestedString(m map[string]interface{}, key string) string {
+	if val := getCaseInsensitiveString(m, key); val != "" {
+		return val
+	}
 	if sub := getCaseInsensitiveMap(m, key); sub != nil {
 		for _, v := range sub {
 			if s, ok := v.(string); ok {
