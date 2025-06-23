@@ -9,14 +9,14 @@ install:
     - MobaXTerm
     - cherrytree
   logs:
-    global log directory:
+    global log directory: |
       C:\logs
     per app log directories:
-      cherry tree:
+      cherry tree: |
         cherry-tree
   downloads:
-    global dowload directory:
+    global dowload directory: |
       C:\downloads
     per app download directories:
-      cherry tree:
+      cherry tree: |
         cherry-tree
