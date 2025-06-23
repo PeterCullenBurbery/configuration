@@ -35,7 +35,6 @@ func main() {
 	defer logFile.Close()
 	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
-	// Load YAML
 	var raw map[string]interface{}
 	data, err := os.ReadFile(*installPath)
 	if err != nil {
@@ -142,6 +141,8 @@ func toInstallFunctionName(label string) string {
 		return "Install-Choco"
 	case "cherrytree":
 		return "Install-CherryTree"
+	case "go":
+		return "Install-Go"
 	default:
 		return "Install-" + strings.Title(l)
 	}
