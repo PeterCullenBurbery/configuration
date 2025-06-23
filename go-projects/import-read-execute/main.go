@@ -11,7 +11,7 @@ import (
 
 type SettingMapping struct {
 	YamlKey  string
-	ValueMap map[string]string // map from YAML value to PowerShell function
+	ValueMap map[string]string
 }
 
 var mappings = []SettingMapping{
@@ -53,14 +53,18 @@ var mappings = []SettingMapping{
 }
 
 func main() {
-	// Step 1: Read the config.yaml
-	configFile := "config.yaml"
-	content, err := os.ReadFile(configFile)
-	if err != nil {
-		log.Fatalf("❌ Failed to read %s: %v", configFile, err)
+	// Allow optional path to config.yaml as CLI arg
+	configPath := "config.yaml"
+	if len(os.Args) > 1 {
+		configPath = os.Args[1]
 	}
 
-	// Step 2: Unmarshal into a generic map
+	// Load and parse YAML file
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		log.Fatalf("❌ Failed to read %s: %v", configPath, err)
+	}
+
 	var raw map[string]map[string]interface{}
 	err = yaml.Unmarshal(content, &raw)
 	if err != nil {
@@ -70,44 +74,40 @@ func main() {
 	config := raw["configuration_profile"]
 	var psFunctions []string
 
-	// Step 3: Process config using mappings
 	for _, mapping := range mappings {
 		if val, exists := config[mapping.YamlKey]; exists {
 			strVal := fmt.Sprintf("%v", val)
 			if psFunc, ok := mapping.ValueMap[strVal]; ok {
 				psFunctions = append(psFunctions, psFunc)
 			} else {
-				log.Printf("⚠️  No PowerShell mapping for key=%q value=%q", mapping.YamlKey, strVal)
+				log.Printf("⚠️ No match for key %q with value %q", mapping.YamlKey, strVal)
 			}
 		}
 	}
 
 	if len(psFunctions) == 0 {
-		log.Println("⚠️  No matching PowerShell functions found. Nothing to do.")
+		log.Println("⚠️ No functions to execute from config.")
 		return
 	}
 
-	// Step 4: Create PowerShell script
 	psScript := "Import-Module ./output/MyModule.psm1\n"
 	for _, fn := range psFunctions {
 		psScript += fn + "\n"
 	}
 
-	// Step 5: Write the script to file
 	tempScript := "run.ps1"
 	err = os.WriteFile(tempScript, []byte(psScript), 0644)
 	if err != nil {
-		log.Fatalf("❌ Failed to write %s: %v", tempScript, err)
+		log.Fatalf("❌ Failed to write PowerShell script: %v", err)
 	}
 
-	// Step 6: Run the script
-	fmt.Println("🚀 Running configuration script...")
+	fmt.Printf("🚀 Running PowerShell with config %s...\n", configPath)
 	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", tempScript)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
 	if err := cmd.Run(); err != nil {
-		log.Fatalf("❌ PowerShell script execution failed: %v", err)
+		log.Fatalf("❌ PowerShell execution failed: %v", err)
 	}
-	fmt.Println("✅ Configuration applied successfully.")
+	fmt.Println("✅ Configuration complete.")
 }
