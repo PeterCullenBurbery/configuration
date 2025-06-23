@@ -15,7 +15,7 @@ install:
       cherry tree: |
         cherry-tree
   downloads:
-    global dowload directory: |
+    global download directory: |
       C:\downloads
     per app download directories:
       cherry tree: |
