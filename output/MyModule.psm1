@@ -1255,29 +1255,6 @@ function Install-WinSCP {
     }
 }
 
-function Install-Choco {
-    [CmdletBinding()]
-    param ()
-
-    Write-Host "🚀 Starting installation of Chocolatey..."
-
-    $installScript = 'https://community.chocolatey.org/install.ps1'
-
-    try {
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-
-        # Secure protocol
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-
-        # Run install script
-        iex ((New-Object System.Net.WebClient).DownloadString($installScript))
-
-        Write-Host "✅ Chocolatey installed successfully."
-    } catch {
-        Write-Error "❌ Failed to install Chocolatey. Error: $_"
-    }
-}
-
 function Install-MobaXterm {
     [CmdletBinding()]
     param ()
@@ -1295,6 +1272,26 @@ function Install-MobaXterm {
         Write-Host "✅ MobaXterm installed successfully."
     } catch {
         Write-Error "❌ Failed to install MobaXterm. Error: $_"
+    }
+}
+
+function Install-Go {
+    [CmdletBinding()]
+    param ()
+
+    Write-Host "🚀 Starting installation of Go..."
+
+    $arguments = @(
+        "install"
+        "golang"
+        "--yes"
+    )
+
+    try {
+        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+        Write-Host "✅ Go installed successfully."
+    } catch {
+        Write-Error "❌ Failed to install Go. Error: $_"
     }
 }
 
@@ -1379,5 +1376,28 @@ function Install-CherryTree {
         Write-Host "⏱️ Start: $start"
         Write-Host "❌ End:   $end"
         Write-Host "🧮 Duration: $($duration.ToString())"
+    }
+}
+
+function Install-Choco {
+    [CmdletBinding()]
+    param ()
+
+    Write-Host "🚀 Starting installation of Chocolatey..."
+
+    $installScript = 'https://community.chocolatey.org/install.ps1'
+
+    try {
+        Set-ExecutionPolicy Bypass -Scope Process -Force
+
+        # Secure protocol
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+
+        # Run install script
+        iex ((New-Object System.Net.WebClient).DownloadString($installScript))
+
+        Write-Host "✅ Chocolatey installed successfully."
+    } catch {
+        Write-Error "❌ Failed to install Chocolatey. Error: $_"
     }
 }

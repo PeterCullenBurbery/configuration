@@ -35,6 +35,7 @@
 - Install-7Zip
 - Install-Voidtools-Everything
 - Install-WinSCP
-- Install-Choco
 - Install-MobaXterm
+- Install-Go
 - Install-CherryTree
+- Install-Choco

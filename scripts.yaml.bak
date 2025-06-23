@@ -1156,7 +1156,7 @@ general:
           }
       }
 install:
-  install with winget:
+  install with winget or choco:
     Powershell 7: |
       function Install-PowerShell-7 {
           [CmdletBinding()]
@@ -1277,7 +1277,29 @@ install:
               Write-Error "❌ Failed to install WinSCP. Error: $_"
           }
       }
-  install with choco:
+    choco: |
+      function Install-Choco {
+          [CmdletBinding()]
+          param ()
+
+          Write-Host "🚀 Starting installation of Chocolatey..."
+
+          $installScript = 'https://community.chocolatey.org/install.ps1'
+
+          try {
+              Set-ExecutionPolicy Bypass -Scope Process -Force
+
+              # Secure protocol
+              [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+
+              # Run install script
+              iex ((New-Object System.Net.WebClient).DownloadString($installScript))
+
+              Write-Host "✅ Chocolatey installed successfully."
+          } catch {
+              Write-Error "❌ Failed to install Chocolatey. Error: $_"
+          }
+      }
     MobaXTerm: |
       function Install-MobaXterm {
           [CmdletBinding()]
@@ -1296,26 +1318,6 @@ install:
               Write-Host "✅ MobaXterm installed successfully."
           } catch {
               Write-Error "❌ Failed to install MobaXterm. Error: $_"
-          }
-      }
-    Go: |
-      function Install-Go {
-          [CmdletBinding()]
-          param ()
-
-          Write-Host "🚀 Starting installation of Go..."
-
-          $arguments = @(
-              "install"
-              "golang"
-              "--yes"
-          )
-
-          try {
-              Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
-              Write-Host "✅ Go installed successfully."
-          } catch {
-              Write-Error "❌ Failed to install Go. Error: $_"
           }
       }
   install with msiexec or Start-Process:
@@ -1401,29 +1403,5 @@ install:
               Write-Host "⏱️ Start: $start"
               Write-Host "❌ End:   $end"
               Write-Host "🧮 Duration: $($duration.ToString())"
-          }
-      }
-  install with miscellaneous (neither winget nor choco nor Start-Process nor msiexec):
-    choco: |
-      function Install-Choco {
-          [CmdletBinding()]
-          param ()
-
-          Write-Host "🚀 Starting installation of Chocolatey..."
-
-          $installScript = 'https://community.chocolatey.org/install.ps1'
-
-          try {
-              Set-ExecutionPolicy Bypass -Scope Process -Force
-
-              # Secure protocol
-              [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-
-              # Run install script
-              iex ((New-Object System.Net.WebClient).DownloadString($installScript))
-
-              Write-Host "✅ Chocolatey installed successfully."
-          } catch {
-              Write-Error "❌ Failed to install Chocolatey. Error: $_"
           }
       }

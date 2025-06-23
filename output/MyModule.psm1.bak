@@ -1330,8 +1330,9 @@ function Install-CherryTree {
         New-Item -ItemType Directory -Path $installDirParent -Force | Out-Null
     }
 
-    # Define installer
-    $installer = "C:\Users\Administrator\Downloads\cherrytree_1.5.0.0_win64_setup.exe"
+    # Use dynamic path to installer
+    $installerName = "cherrytree_1.5.0.0_win64_setup.exe"
+    $installer = Join-Path $installPath $installerName
     if (-not (Test-Path $installer)) {
         Write-Log "❌ Installer not found at $installer"
         Write-Error "❌ Installer not found at $installer"
