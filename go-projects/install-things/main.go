@@ -56,7 +56,7 @@ func main() {
 
 	globalLogDir := getNestedString(logs, "global log directory")
 	perAppLogs := getNestedMap(logs, "per app log directories")
-	globalDownloadDir := getNestedString(downloads, "global dowload directory")
+	globalDownloadDir := getNestedString(downloads, "global download directory")
 	perAppDownloads := getNestedMap(downloads, "per app download directories")
 
 	if globalLogDir == "" || globalDownloadDir == "" {
