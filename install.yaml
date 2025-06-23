@@ -7,6 +7,7 @@ install:
     - voidtools everything
     - WinSCP
     - MobaXTerm
+    - cherrytree
   logs:
     global log directory:
       C:\logs
