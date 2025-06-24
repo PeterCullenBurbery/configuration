@@ -1423,37 +1423,36 @@ function Install-Miniconda {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$InstallerPath
+        [string]$InstallerPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$LogPath
     )
 
-    # Define installation paths
     $installDir = "C:\ProgramData\Miniconda3"
     $condaExe = Join-Path $installDir "Scripts\conda.exe"
     $pythonExe = Join-Path $installDir "python.exe"
 
-    # Check if installer exists
     if (-not (Test-Path -Path $InstallerPath)) {
         Write-Error "❌ Installer not found at: $InstallerPath"
         return
     }
 
-    Write-Host "📦 Installing Miniconda from: $InstallerPath"
+    try {
+        Start-Transcript -Path $LogPath -Append -ErrorAction Stop
+    } catch {
+        Write-Warning "⚠️ Could not start transcript: $_"
+    }
 
-    # Define install arguments
+    Write-Host "📦 Installing Miniconda from: $InstallerPath"
     $arguments = @(
-        "/S",                                # Silent install
-        "/InstallationType=AllUsers",        # System-wide
-        "/AddToPath=1",                      # Add to PATH
-        "/RegisterPython=1",                 # Set as system Python
-        "/D=$installDir"                     # Install location (must be last)
+        "/S", "/InstallationType=AllUsers", "/AddToPath=1", "/RegisterPython=1", "/D=$installDir"
     )
 
     try {
-        # Run installer
         Start-Process -FilePath $InstallerPath -ArgumentList $arguments -Wait -NoNewWindow
         Write-Host "✅ Miniconda installed successfully."
 
-        # --- Verification ---
         Write-Host "`n✅ Miniconda installed to: $installDir"
 
         if (Test-Path $pythonExe) {
@@ -1467,7 +1466,6 @@ function Install-Miniconda {
             Write-Host "📦 Conda version:"
             & $condaExe --version
 
-            # Clear Conda cache
             & $condaExe clean --all --yes
             Write-Host "🧹 Conda cache cleaned."
         } else {
@@ -1475,6 +1473,12 @@ function Install-Miniconda {
         }
     } catch {
         Write-Error "❌ Installation failed: $_"
+    } finally {
+        try {
+            Stop-Transcript | Out-Null
+        } catch {
+            Write-Warning "⚠️ Failed to stop transcript: $_"
+        }
     }
 }
 
