@@ -11,6 +11,8 @@ install:
     per app log directories:
       cherry tree: |
         cherry-tree
+      python: |
+        Miniconda
   downloads:
     global download directory: |
       C:\downloads

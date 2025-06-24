@@ -72,21 +72,23 @@ func main() {
 		funcName := toInstallFunctionName(label)
 		log.Printf("✔️ Queued installer: %s → %s", label, funcName)
 
+		appKey := strings.ToLower(label) // case-insensitive lookup
+
+		subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
+		subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
+
+		timestamp := formatTimestamp()
+		logDir := filepath.Join(globalLogDir, subLog)
+		logFileName := fmt.Sprintf("%s_%s.log", strings.ReplaceAll(appKey, " ", ""), timestamp)
+		appLogPath := filepath.Join(logDir, logFileName)
+		appDownloadDir := filepath.Join(globalDownloadDir, subDownload)
+
+		_ = os.MkdirAll(logDir, os.ModePerm)
+		_ = os.MkdirAll(appDownloadDir, os.ModePerm)
+
 		if strings.EqualFold(funcName, "Install-CherryTree") {
-			appKey := "cherry tree"
-			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
-			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-
-			timestamp := formatTimestamp()
-			logDir := filepath.Join(globalLogDir, subLog)
-			logFileName := fmt.Sprintf("cherrytree_%s.log", timestamp)
-			cherryLogPath := filepath.Join(logDir, logFileName)
-			cherryInstallPath := filepath.Join(globalDownloadDir, subDownload)
-			installerPath := filepath.Join(cherryInstallPath, "cherrytree_1.5.0.0_win64_setup.exe")
+			installerPath := filepath.Join(appDownloadDir, "cherrytree_1.5.0.0_win64_setup.exe")
 			installerURL := "https://www.giuspen.net/software/cherrytree_1.5.0.0_win64_setup.exe"
-
-			_ = os.MkdirAll(logDir, os.ModePerm)
-			_ = os.MkdirAll(cherryInstallPath, os.ModePerm)
 
 			if !fileExists(installerPath) {
 				log.Printf("🌐 Downloading CherryTree from: %s", installerURL)
@@ -98,17 +100,12 @@ func main() {
 				log.Println("📁 CherryTree installer already present.")
 			}
 
-			log.Printf("📝 CherryTree log path: %s", cherryLogPath)
-			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, cherryLogPath, cherryInstallPath))
+			log.Printf("📝 CherryTree log path: %s", appLogPath)
+			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, appLogPath, appDownloadDir))
 
 		} else if strings.EqualFold(funcName, "Install-Miniconda3") {
-			appKey := "python"
-			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-			minicondaInstallPath := filepath.Join(globalDownloadDir, subDownload)
-			installerPath := filepath.Join(minicondaInstallPath, "Miniconda3-latest-Windows-x86_64.exe")
+			installerPath := filepath.Join(appDownloadDir, "Miniconda3-latest-Windows-x86_64.exe")
 			installerURL := "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
-
-			_ = os.MkdirAll(minicondaInstallPath, os.ModePerm)
 
 			if !fileExists(installerPath) {
 				log.Printf("🌐 Downloading Miniconda from: %s", installerURL)
@@ -120,11 +117,8 @@ func main() {
 				log.Println("📁 Miniconda installer already present.")
 			}
 
-			psScript.WriteString(fmt.Sprintf(
-				`Start-Process -FilePath '%s' -ArgumentList @("/S", "/InstallationType=AllUsers", "/AddToPath=1", "/RegisterPython=1", "/D=C:\ProgramData\Miniconda3") -Wait`+"\n",
-				installerPath,
-			))
-			psScript.WriteString(`& "C:\ProgramData\Miniconda3\Scripts\conda.exe" clean --all --yes` + "\n")
+			log.Printf("📝 Miniconda log path: %s", appLogPath)
+			psScript.WriteString(fmt.Sprintf(`%s -InstallerPath '%s' -LogPath '%s'`+"\n", funcName, installerPath, appLogPath))
 
 		} else {
 			psScript.WriteString(funcName + "\n")
