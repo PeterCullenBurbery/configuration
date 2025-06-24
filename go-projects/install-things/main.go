@@ -123,7 +123,11 @@ func main() {
 // --- Helpers ---
 
 func toInstallFunctionName(label string) string {
-	l := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(label, " ", ""), "-", ""))
+	// Normalize the label: remove spaces, dashes, and pluses
+	l := strings.ToLower(
+		strings.NewReplacer(" ", "", "-", "", "+", "").Replace(label),
+	)
+
 	switch l {
 	case "powershell7":
 		return "Install-PowerShell-7"
@@ -143,7 +147,7 @@ func toInstallFunctionName(label string) string {
 		return "Install-CherryTree"
 	case "go":
 		return "Install-Go"
-	case "notepadpp", "notepadplusplus":
+	case "notepadpp", "notepadplusplus", "notepad":
 		return "Install-NotepadPP"
 	default:
 		return "Install-" + strings.Title(l)
