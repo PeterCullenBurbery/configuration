@@ -988,6 +988,14 @@ public static extern IntPtr SendMessageTimeout(
     }
 }
 
+function Get-SystemPath {
+    [CmdletBinding()]
+    param ()
+
+    $path = [Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
+    return $path
+}
+
 function Add-ToPSModulePath {
     [CmdletBinding()]
     param (
@@ -1332,6 +1340,51 @@ function Install-SQLiteBrowser {
         Write-Host "✅ DB Browser for SQLite installed successfully."
     } catch {
         Write-Error "❌ Failed to install DB Browser for SQLite. Error: $_"
+    }
+}
+
+function Install-Java {
+    [CmdletBinding()]
+    param (
+        [string]$PackageName = "temurin21"
+    )
+
+    Write-Host "🚀 Starting installation of Java package: $PackageName..."
+
+    $arguments = @(
+        "install"
+        $PackageName
+        "--yes"
+    )
+
+    try {
+        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+        Write-Host "✅ Java ($PackageName) installed successfully."
+
+        # Handle hardcoded JAVA_HOME for Temurin 21
+        if ($PackageName -ieq "temurin21") {
+            $javaHomePath = "C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot"
+            [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Host "🌱 JAVA_HOME set to: $javaHomePath"
+        }
+        else {
+            # Try to auto-detect JDK install path under Eclipse Adoptium
+            $jdkDir = Get-ChildItem "C:\Program Files\Eclipse Adoptium\" -Directory |
+                      Where-Object { $_.Name -like "jdk*" } |
+                      Sort-Object LastWriteTime -Descending |
+                      Select-Object -First 1
+
+            if ($jdkDir) {
+                $javaHomePath = $jdkDir.FullName
+                [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
+                Write-Host "🌱 JAVA_HOME auto-set to: $javaHomePath"
+            } else {
+                Write-Warning "⚠️ Could not find Eclipse Adoptium JDK install directory to set JAVA_HOME."
+            }
+        }
+
+    } catch {
+        Write-Error "❌ Failed to install Java ($PackageName). Error: $_"
     }
 }
 

@@ -1335,6 +1335,51 @@ function Install-SQLiteBrowser {
     }
 }
 
+function Install-Java {
+    [CmdletBinding()]
+    param (
+        [string]$PackageName = "temurin21"
+    )
+
+    Write-Host "🚀 Starting installation of Java package: $PackageName..."
+
+    $arguments = @(
+        "install"
+        $PackageName
+        "--yes"
+    )
+
+    try {
+        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+        Write-Host "✅ Java ($PackageName) installed successfully."
+
+        # Handle hardcoded JAVA_HOME for Temurin 21
+        if ($PackageName -ieq "temurin21") {
+            $javaHomePath = "C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot"
+            [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Host "🌱 JAVA_HOME set to: $javaHomePath"
+        }
+        else {
+            # Try to auto-detect JDK install path under Eclipse Adoptium
+            $jdkDir = Get-ChildItem "C:\Program Files\Eclipse Adoptium\" -Directory |
+                      Where-Object { $_.Name -like "jdk*" } |
+                      Sort-Object LastWriteTime -Descending |
+                      Select-Object -First 1
+
+            if ($jdkDir) {
+                $javaHomePath = $jdkDir.FullName
+                [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
+                Write-Host "🌱 JAVA_HOME auto-set to: $javaHomePath"
+            } else {
+                Write-Warning "⚠️ Could not find Eclipse Adoptium JDK install directory to set JAVA_HOME."
+            }
+        }
+
+    } catch {
+        Write-Error "❌ Failed to install Java ($PackageName). Error: $_"
+    }
+}
+
 function Install-CherryTree {
     [CmdletBinding()]
     param (
@@ -1420,39 +1465,40 @@ function Install-CherryTree {
 }
 
 function Install-Miniconda {
+
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true)]
-        [string]$InstallerPath,
-
-        [Parameter(Mandatory = $true)]
-        [string]$LogPath
+        [string]$InstallerPath
     )
 
+    # Define installation paths
     $installDir = "C:\ProgramData\Miniconda3"
     $condaExe = Join-Path $installDir "Scripts\conda.exe"
     $pythonExe = Join-Path $installDir "python.exe"
 
+    # Check if installer exists
     if (-not (Test-Path -Path $InstallerPath)) {
         Write-Error "❌ Installer not found at: $InstallerPath"
         return
     }
 
-    try {
-        Start-Transcript -Path $LogPath -Append -ErrorAction Stop
-    } catch {
-        Write-Warning "⚠️ Could not start transcript: $_"
-    }
-
     Write-Host "📦 Installing Miniconda from: $InstallerPath"
+
+    # Define install arguments
     $arguments = @(
-        "/S", "/InstallationType=AllUsers", "/AddToPath=1", "/RegisterPython=1", "/D=$installDir"
+        "/S",                                # Silent install
+        "/InstallationType=AllUsers",        # System-wide
+        "/RegisterPython=1",                 # Set as system Python
+        "/D=$installDir"                     # Install location (must be last)
     )
 
     try {
+        # Run installer
         Start-Process -FilePath $InstallerPath -ArgumentList $arguments -Wait -NoNewWindow
         Write-Host "✅ Miniconda installed successfully."
 
+        # --- Verification ---
         Write-Host "`n✅ Miniconda installed to: $installDir"
 
         if (Test-Path $pythonExe) {
@@ -1466,19 +1512,15 @@ function Install-Miniconda {
             Write-Host "📦 Conda version:"
             & $condaExe --version
 
+            # Clear Conda cache
             & $condaExe clean --all --yes
             Write-Host "🧹 Conda cache cleaned."
         } else {
             Write-Warning "⚠️ Conda not found at expected path: $condaExe"
         }
+
     } catch {
         Write-Error "❌ Installation failed: $_"
-    } finally {
-        try {
-            Stop-Transcript | Out-Null
-        } catch {
-            Write-Warning "⚠️ Failed to stop transcript: $_"
-        }
     }
 }
 

@@ -78,6 +78,21 @@ if ((Test-Path $install_exe) -and (Test-Path $install_path) -and (Test-Path $psm
     Write-Error "❌ Missing files for install-things"
 }
 
+# --- Step 5: Add Miniconda to PATH using Go CLI ---
+$miniconda_path_exe = Join-Path $base_path "go-projects\add-miniconda-to-path-by-executing-go-cli\add-miniconda-to-path-by-executing-go-cli.exe"
+
+if ((Test-Path $miniconda_path_exe) -and (Test-Path $go_command_cli)) {
+    $start = Get-Date
+    Write-Host "🐍 Running add-miniconda-to-path-by-executing-go-cli.exe..."
+    Start-Process -FilePath $miniconda_path_exe `
+        -ArgumentList "--cli", "`"$go_command_cli`"" `
+        -Wait
+    $end = Get-Date
+    Write-Host "✅ Miniconda PATH updated in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
+} else {
+    Write-Error "❌ Missing Go CLI or Miniconda executable for path update"
+}
+
 # --- Step 6: Run config tools (no arguments) ---
 $config_tools = @(
     "configure-settings-for-windows-terminal\configure-settings-for-windows-terminal.exe",

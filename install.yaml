@@ -4,7 +4,7 @@ install:
     - Powershell 7
     - VS code
     - voidtools everything
-    - Miniconda
+    - Java
   logs:
     global log directory: |
       C:\logs

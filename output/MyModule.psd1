@@ -19,7 +19,7 @@ ModuleVersion = '1.0.0'
 # CompatiblePSEditions = @()
 
 # ID used to uniquely identify this module
-GUID = 'd1fc711e-4b0f-47f9-93e9-a309e4c3b011'
+GUID = 'afd1498f-5b61-4032-901a-79f7f4a4f44d'
 
 #This will be updated to something like ....
 

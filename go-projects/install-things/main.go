@@ -174,6 +174,8 @@ func toInstallFunctionName(label string) string {
 		return "Install-SQLiteBrowser"
 	case "python", "miniconda":
 		return "Install-Miniconda"
+	case "java":
+		return "Install-Java"
 	default:
 		return "Install-" + strings.Title(l)
 	}
