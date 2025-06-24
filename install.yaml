@@ -3,7 +3,15 @@ install:
     - Choco
     - Powershell 7
     - VS code
+    - 7zip
     - voidtools everything
+    - WinSCP
+    - MobaXTerm
+    - cherrytree
+    - Go
+    - Notepad++
+    - SQLite Browser
+    - Miniconda
     - Java
   logs:
     global log directory: |
