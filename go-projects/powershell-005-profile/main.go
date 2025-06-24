@@ -3,38 +3,29 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 func main() {
-	// --- Check if Windows PowerShell is available ---
-	_, err := exec.LookPath("powershell.exe")
-	if err != nil {
-		fmt.Println("ℹ️ Windows PowerShell (powershell.exe) is not available. Skipping profile update.")
+	// Get USERPROFILE environment variable
+	userProfile := os.Getenv("USERPROFILE")
+	if userProfile == "" {
+		fmt.Println("❌ USERPROFILE environment variable not found.")
 		return
 	}
 
-	// --- Get PowerShell 5 profile path ---
-	cmd := exec.Command("powershell.exe", "-NoProfile", "-Command", "Write-Output $PROFILE")
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Printf("❌ Failed to get PowerShell 5 profile path: %v\n", err)
-		return
-	}
-
-	profilePath := filepath.Clean(strings.TrimSpace(string(output)))
-
-	// --- Ensure directory exists ---
+	// Form PowerShell 5 profile path
+	profilePath := filepath.Join(userProfile, "Documents", "WindowsPowerShell", "Microsoft.PowerShell_profile.ps1")
 	profileDir := filepath.Dir(profilePath)
-	err = os.MkdirAll(profileDir, 0755)
+
+	// Ensure the directory exists
+	err := os.MkdirAll(profileDir, 0755)
 	if err != nil {
-		fmt.Printf("❌ Failed to create directory: %v\n", err)
+		fmt.Printf("❌ Failed to create profile directory: %v\n", err)
 		return
 	}
 
-	// --- Define PowerShell 5 profile content ---
+	// PowerShell 5 profile content
 	content := `# This is a comment
 
 Import-Module MyModule
@@ -72,12 +63,12 @@ if (Test-Path $ChocolateyProfile) {
     Import-Module "$ChocolateyProfile"
 }`
 
-	// --- Write profile file ---
+	// Write to profile file
 	err = os.WriteFile(profilePath, []byte(content), 0644)
 	if err != nil {
 		fmt.Printf("❌ Failed to write to PowerShell 5 profile: %v\n", err)
 		return
 	}
 
-	fmt.Printf("✅ PowerShell 5 profile updated at: %s\n", profilePath)
+	fmt.Printf("✅ PowerShell 5 profile written to: %s\n", profilePath)
 }

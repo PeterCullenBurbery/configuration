@@ -3,38 +3,29 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 func main() {
-	// --- Check if PowerShell 7 (pwsh) is available ---
-	_, err := exec.LookPath("pwsh")
-	if err != nil {
-		fmt.Println("ℹ️ PowerShell 7 (pwsh) is not installed. Skipping profile update.")
+	// Get USERPROFILE environment variable
+	userProfile := os.Getenv("USERPROFILE")
+	if userProfile == "" {
+		fmt.Println("❌ USERPROFILE environment variable not found.")
 		return
 	}
 
-	// --- Get PowerShell 7 profile path ---
-	cmd := exec.Command("pwsh", "-NoProfile", "-Command", "Write-Output $PROFILE")
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Printf("❌ Failed to get PowerShell 7 profile path: %v\n", err)
-		return
-	}
-
-	profilePath := filepath.Clean(strings.TrimSpace(string(output)))
-
-	// --- Ensure directory exists ---
+	// Construct the PowerShell 7 profile path
+	profilePath := filepath.Join(userProfile, "Documents", "PowerShell", "Microsoft.PowerShell_profile.ps1")
 	profileDir := filepath.Dir(profilePath)
-	err = os.MkdirAll(profileDir, 0755)
+
+	// Ensure the directory exists
+	err := os.MkdirAll(profileDir, 0755)
 	if err != nil {
-		fmt.Printf("❌ Failed to create directory: %v\n", err)
+		fmt.Printf("❌ Failed to create profile directory: %v\n", err)
 		return
 	}
 
-	// --- Define content to write ---
+	// PowerShell 7 profile content
 	content := `# This is a comment
 
 Import-Module MyModule
@@ -66,22 +57,18 @@ try {
 }
 # --- End MyModule Logging Block PS007 ---
 
-# Import the Chocolatey Profile that contains the necessary code to enable
-# tab-completions to function for 'choco'.
-# Be aware that if you are missing these lines from your profile, tab completion
-# for 'choco' will not function.
-# See https://ch0.co/tab-completion for details.
+# Import the Chocolatey Profile that enables tab-completion for 'choco'
 $ChocolateyProfile = "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
-if (Test-Path($ChocolateyProfile)) {
-  Import-Module "$ChocolateyProfile"
+if (Test-Path $ChocolateyProfile) {
+    Import-Module "$ChocolateyProfile"
 }`
 
-	// --- Write content to profile ---
+	// Write to profile file
 	err = os.WriteFile(profilePath, []byte(content), 0644)
 	if err != nil {
-		fmt.Printf("❌ Failed to write to profile: %v\n", err)
+		fmt.Printf("❌ Failed to write to PowerShell 7 profile: %v\n", err)
 		return
 	}
 
-	fmt.Printf("✅ PowerShell 7 profile updated at: %s\n", profilePath)
+	fmt.Printf("✅ PowerShell 7 profile written to: %s\n", profilePath)
 }
