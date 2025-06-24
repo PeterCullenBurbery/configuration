@@ -10,6 +10,7 @@ install:
     - cherrytree
     - Go
     - Notepad++
+    - SQLite Browser
   logs:
     global log directory: |
       C:\logs
