@@ -1,4 +1,4 @@
-function Set-DarkMode {
+﻿function Set-DarkMode {
     [CmdletBinding()]
     param (
         [switch]$NoRestart  # If specified, do not restart Explorer automatically

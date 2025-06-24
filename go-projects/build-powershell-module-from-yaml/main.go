@@ -32,7 +32,7 @@ func extractFunctions(node *yaml.Node, functions *[]string) {
 	}
 }
 
-// Backup to a fixed .bak file (overwrite if it already exists), then write the new file
+// Backup to a fixed .bak file (overwrite if it already exists), then write the new file with BOM
 func overwriteWithSingleBackup(path string, content string) error {
 	if _, err := os.Stat(path); err == nil {
 		backupPath := path + ".bak"
@@ -42,7 +42,11 @@ func overwriteWithSingleBackup(path string, content string) error {
 		}
 		fmt.Printf("🔁 Existing file backed up: %s → %s\n", path, backupPath)
 	}
-	return os.WriteFile(path, []byte(content), 0644)
+
+	// Prepend UTF-8 BOM
+	utf8Bom := []byte{0xEF, 0xBB, 0xBF}
+	data := append(utf8Bom, []byte(content)...)
+	return os.WriteFile(path, data, 0644)
 }
 
 // Write collected functions into a .psm1 file
