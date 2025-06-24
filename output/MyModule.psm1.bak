@@ -1295,6 +1295,26 @@ function Install-Go {
     }
 }
 
+function Install-NotepadPP {
+    [CmdletBinding()]
+    param ()
+
+    Write-Host "🚀 Starting installation of Notepad++..."
+
+    $arguments = @(
+        "install"
+        "notepadplusplus"
+        "--yes"
+    )
+
+    try {
+        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+        Write-Host "✅ Notepad++ installed successfully."
+    } catch {
+        Write-Error "❌ Failed to install Notepad++. Error: $_"
+    }
+}
+
 function Install-CherryTree {
     [CmdletBinding()]
     param (

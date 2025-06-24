@@ -1315,6 +1315,26 @@ function Install-NotepadPP {
     }
 }
 
+function Install-SQLiteBrowser {
+    [CmdletBinding()]
+    param ()
+
+    Write-Host "🚀 Starting installation of DB Browser for SQLite..."
+
+    $arguments = @(
+        "install"
+        "sqlitebrowser"
+        "--yes"
+    )
+
+    try {
+        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+        Write-Host "✅ DB Browser for SQLite installed successfully."
+    } catch {
+        Write-Error "❌ Failed to install DB Browser for SQLite. Error: $_"
+    }
+}
+
 function Install-CherryTree {
     [CmdletBinding()]
     param (

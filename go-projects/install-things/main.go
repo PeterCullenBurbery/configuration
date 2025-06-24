@@ -149,6 +149,8 @@ func toInstallFunctionName(label string) string {
 		return "Install-Go"
 	case "notepadpp", "notepadplusplus", "notepad":
 		return "Install-NotepadPP"
+	case "sqlitebrowser", "sqlite", "sqlitebrowserforsqlite", "dbbrowser":
+		return "Install-SQLiteBrowser"
 	default:
 		return "Install-" + strings.Title(l)
 	}

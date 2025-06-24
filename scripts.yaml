@@ -1338,6 +1338,26 @@ install:
               Write-Error "❌ Failed to install Notepad++. Error: $_"
           }
       }
+    SQLite Browser: |
+      function Install-SQLiteBrowser {
+          [CmdletBinding()]
+          param ()
+
+          Write-Host "🚀 Starting installation of DB Browser for SQLite..."
+
+          $arguments = @(
+              "install"
+              "sqlitebrowser"
+              "--yes"
+          )
+
+          try {
+              Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+              Write-Host "✅ DB Browser for SQLite installed successfully."
+          } catch {
+              Write-Error "❌ Failed to install DB Browser for SQLite. Error: $_"
+          }
+      }
   install with msiexec or Start-Process:
     Cherry tree: |
       function Install-CherryTree {
