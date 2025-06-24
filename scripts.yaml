@@ -1318,6 +1318,26 @@ install:
               Write-Error "❌ Failed to install Go. Error: $_"
           }
       }
+    Notepad++: |
+      function Install-NotepadPP {
+          [CmdletBinding()]
+          param ()
+
+          Write-Host "🚀 Starting installation of Notepad++..."
+
+          $arguments = @(
+              "install"
+              "notepadplusplus"
+              "--yes"
+          )
+
+          try {
+              Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
+              Write-Host "✅ Notepad++ installed successfully."
+          } catch {
+              Write-Error "❌ Failed to install Notepad++. Error: $_"
+          }
+      }
   install with msiexec or Start-Process:
     Cherry tree: |
       function Install-CherryTree {

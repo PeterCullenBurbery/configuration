@@ -143,6 +143,8 @@ func toInstallFunctionName(label string) string {
 		return "Install-CherryTree"
 	case "go":
 		return "Install-Go"
+	case "notepadpp", "notepadplusplus":
+		return "Install-NotepadPP"
 	default:
 		return "Install-" + strings.Title(l)
 	}

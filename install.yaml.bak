@@ -8,6 +8,8 @@ install:
     - WinSCP
     - MobaXTerm
     - cherrytree
+    - Go
+    - Notepad++
   logs:
     global log directory: |
       C:\logs
