@@ -1427,39 +1427,3 @@ install:
               Write-Error "❌ Failed to install Chocolatey. Error: $_"
           }
       }
-  powershell modules:
-    install custom module: |
-      function Install-CustomModule {
-          [CmdletBinding()]
-          param (
-              [Parameter(Position = 0, Mandatory = $true)]
-              [string]$psm1_path,
-
-              [Parameter(Position = 1, Mandatory = $true)]
-              [string]$psd1_path,
-
-              [Parameter(Position = 2, Mandatory = $true)]
-              [string]$module_name,
-
-              [Parameter(Position = 3, Mandatory = $true)]
-              [string]$target_directory
-          )
-
-          $module_folder = Join-Path -Path $target_directory -ChildPath $module_name
-
-          if (-not (Test-Path -Path $module_folder)) {
-              New-Item -Path $module_folder -ItemType Directory -Force | Out-Null
-              Write-Host "📁 Created folder: $module_folder"
-          }
-
-          try {
-              Copy-Item -Path $psm1_path -Destination (Join-Path $module_folder "$module_name.psm1") -Force
-              Copy-Item -Path $psd1_path -Destination (Join-Path $module_folder "$module_name.psd1") -Force
-              Write-Host "✅ Module '$module_name' installed to: $module_folder"
-          } catch {
-              Write-Error "❌ Failed to install module: $_"
-              return $false
-          }
-
-          return $true
-      }
