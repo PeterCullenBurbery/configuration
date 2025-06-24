@@ -1,1 +1,0 @@
-Write a Go program to build a Powershell module from yaml file Desktop\GitHub-repositories\configuration\scripts.yaml. Create psm1 and psd1.
