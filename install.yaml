@@ -4,6 +4,7 @@ install:
     - Powershell 7
     - VS code
     - SQLite Browser
+    - Miniconda
   logs:
     global log directory: |
       C:\logs
@@ -16,3 +17,5 @@ install:
     per app download directories:
       cherry tree: |
         cherry-tree
+      Python:
+        miniconda

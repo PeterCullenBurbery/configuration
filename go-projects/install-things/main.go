@@ -100,6 +100,32 @@ func main() {
 
 			log.Printf("📝 CherryTree log path: %s", cherryLogPath)
 			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, cherryLogPath, cherryInstallPath))
+
+		} else if strings.EqualFold(funcName, "Install-Miniconda3") {
+			appKey := "python"
+			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
+			minicondaInstallPath := filepath.Join(globalDownloadDir, subDownload)
+			installerPath := filepath.Join(minicondaInstallPath, "Miniconda3-latest-Windows-x86_64.exe")
+			installerURL := "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+
+			_ = os.MkdirAll(minicondaInstallPath, os.ModePerm)
+
+			if !fileExists(installerPath) {
+				log.Printf("🌐 Downloading Miniconda from: %s", installerURL)
+				if err := downloadFile(installerPath, installerURL); err != nil {
+					log.Fatalf("❌ Download failed: %v", err)
+				}
+				log.Println("✅ Downloaded Miniconda.")
+			} else {
+				log.Println("📁 Miniconda installer already present.")
+			}
+
+			psScript.WriteString(fmt.Sprintf(
+				`Start-Process -FilePath '%s' -ArgumentList @("/S", "/InstallationType=AllUsers", "/AddToPath=1", "/RegisterPython=1", "/D=C:\ProgramData\Miniconda3") -Wait`+"\n",
+				installerPath,
+			))
+			psScript.WriteString(`& "C:\ProgramData\Miniconda3\Scripts\conda.exe" clean --all --yes` + "\n")
+
 		} else {
 			psScript.WriteString(funcName + "\n")
 		}
@@ -123,10 +149,7 @@ func main() {
 // --- Helpers ---
 
 func toInstallFunctionName(label string) string {
-	// Normalize the label: remove spaces, dashes, and pluses
-	l := strings.ToLower(
-		strings.NewReplacer(" ", "", "-", "", "+", "").Replace(label),
-	)
+	l := strings.ToLower(strings.NewReplacer(" ", "", "-", "", "+", "").Replace(label))
 
 	switch l {
 	case "powershell7":
@@ -151,6 +174,8 @@ func toInstallFunctionName(label string) string {
 		return "Install-NotepadPP"
 	case "sqlitebrowser", "sqlite", "sqlitebrowserforsqlite", "dbbrowser":
 		return "Install-SQLiteBrowser"
+	case "python", "miniconda":
+		return "Install-Miniconda3"
 	default:
 		return "Install-" + strings.Title(l)
 	}
