@@ -148,8 +148,6 @@ func main() {
 	log.Println("🎉 All installations completed.")
 }
 
-
-
 // --- Helper functions ---
 
 func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}) {

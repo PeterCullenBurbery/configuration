@@ -26,6 +26,7 @@
 - prompt
 - Add-ToPath
 - Remove-FromPath
+- Get-SystemPath
 - Add-ToPSModulePath
 - Remove-FromPSModulePath
 - Add-DomainAdminUser

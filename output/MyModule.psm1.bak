@@ -988,6 +988,14 @@ public static extern IntPtr SendMessageTimeout(
     }
 }
 
+function Get-SystemPath {
+    [CmdletBinding()]
+    param ()
+
+    $path = [Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
+    return $path
+}
+
 function Add-ToPSModulePath {
     [CmdletBinding()]
     param (
