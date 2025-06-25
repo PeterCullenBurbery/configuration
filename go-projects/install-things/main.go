@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"flag"
 	"fmt"
 	"io"
@@ -72,11 +73,11 @@ func main() {
 		funcName := toInstallFunctionName(label)
 		log.Printf("✔️ Queued installer: %s → %s", label, funcName)
 
-		if strings.EqualFold(funcName, "Install-CherryTree") {
+		switch {
+		case strings.EqualFold(funcName, "Install-CherryTree"):
 			appKey := "cherry tree"
 			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
 			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-
 			timestamp := formatTimestamp()
 			logDir := filepath.Join(globalLogDir, subLog)
 			logFileName := fmt.Sprintf("cherrytree_%s.log", timestamp)
@@ -101,11 +102,10 @@ func main() {
 			log.Printf("📝 CherryTree log path: %s", cherryLogPath)
 			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, cherryLogPath, cherryInstallPath))
 
-		} else if strings.EqualFold(funcName, "Install-Miniconda") {
+		case strings.EqualFold(funcName, "Install-Miniconda"):
 			appKey := "python"
 			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 			minicondaInstallPath := filepath.Join(globalDownloadDir, subDownload)
-
 			installerPath := filepath.Join(minicondaInstallPath, "Miniconda3-latest-Windows-x86_64.exe")
 			installerURL := "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
 
@@ -121,10 +121,12 @@ func main() {
 				log.Println("📁 Miniconda installer already present.")
 			}
 
-			// Call Install-Miniconda with only InstallerPath
 			psScript.WriteString(fmt.Sprintf(`%s -InstallerPath '%s'`+"\n", funcName, installerPath))
 
-		} else {
+		case strings.EqualFold(label, "SQL Developer"):
+			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads)
+
+		default:
 			psScript.WriteString(funcName + "\n")
 		}
 	}
@@ -144,11 +146,81 @@ func main() {
 	log.Println("✅ Installation complete.")
 }
 
-// --- Helpers ---
+// --- Helper functions ---
+
+func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}) {
+	appKey := "sql developer"
+	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
+	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
+
+	timestamp := formatTimestamp()
+	logDir := filepath.Join(globalLogDir, subLog)
+	logFileName := fmt.Sprintf("sqldeveloper_%s.log", timestamp)
+	sqlLogPath := filepath.Join(logDir, logFileName)
+	sqlDownloadDir := filepath.Join(globalDownloadDir, subDownload)
+
+	_ = os.MkdirAll(logDir, os.ModePerm)
+	_ = os.MkdirAll(sqlDownloadDir, os.ModePerm)
+
+	zipName := "sqldeveloper-24.3.1.347.1826-x64.zip"
+	zipPath := filepath.Join(sqlDownloadDir, zipName)
+	extractDir := filepath.Join(sqlDownloadDir, strings.TrimSuffix(zipName, filepath.Ext(zipName)))
+	installerURL := "https://download.oracle.com/otn_software/java/sqldeveloper/" + zipName
+
+	if !fileExists(zipPath) {
+		log.Printf("🌐 Downloading SQL Developer from: %s", installerURL)
+		if err := downloadFile(zipPath, installerURL); err != nil {
+			log.Fatalf("❌ Download failed: %v", err)
+		}
+		log.Println("✅ Downloaded SQL Developer.")
+	} else {
+		log.Println("📁 SQL Developer ZIP already present.")
+	}
+
+	log.Printf("📦 Extracting SQL Developer to: %s", extractDir)
+	if err := unzip(zipPath, extractDir); err != nil {
+		log.Fatalf("❌ Extraction failed: %v", err)
+	}
+	log.Println("✅ SQL Developer extracted.")
+	log.Printf("📝 SQL Developer log path: %s", sqlLogPath)
+}
+
+func unzip(src string, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		path := filepath.Join(dest, f.Name)
+		if f.FileInfo().IsDir() {
+			_ = os.MkdirAll(path, os.ModePerm)
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+			return err
+		}
+		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
 func toInstallFunctionName(label string) string {
 	l := strings.ToLower(strings.NewReplacer(" ", "", "-", "", "+", "").Replace(label))
-
 	switch l {
 	case "powershell7":
 		return "Install-PowerShell-7"

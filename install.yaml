@@ -27,3 +27,5 @@ install:
         cherry-tree
       Python:
         miniconda
+      SQL Developer:
+        sql-developer
