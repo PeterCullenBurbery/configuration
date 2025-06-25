@@ -6,7 +6,6 @@ install:
     - voidtools everything
     - SQL Developer
     - WinSCP
-    - Miniconda
     - cherrytree
     - Notepad++
   logs:

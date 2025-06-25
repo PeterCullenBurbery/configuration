@@ -1143,6 +1143,50 @@ function Test-Is64Bit {
     }
 }
 
+function New-DesktopShortcut {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$TargetPath,
+
+        [Parameter()]
+        [string]$ShortcutName = $(Split-Path $TargetPath -Leaf).Replace('.exe','') + ".lnk",
+
+        [Parameter()]
+        [string]$Description = "",
+
+        [Parameter()]
+        [int]$WindowStyle = 3,  # ✅ 3 = Maximized by default
+
+        [Parameter()]
+        [bool]$AllUsers = $true  # ✅ Default to All Users
+    )
+
+    if (-not (Test-Path $TargetPath)) {
+        Write-Error "❌ Target path does not exist: $TargetPath"
+        return
+    }
+
+    $desktopPath = if ($AllUsers) {
+        "$env:PUBLIC\Desktop"
+    } else {
+        [Environment]::GetFolderPath("Desktop")
+    }
+
+    $shortcutPath = Join-Path $desktopPath $ShortcutName
+
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $TargetPath
+    $shortcut.WorkingDirectory = Split-Path $TargetPath
+    $shortcut.WindowStyle = $WindowStyle
+    $shortcut.Description = $Description
+    $shortcut.IconLocation = "$TargetPath, 0"
+    $shortcut.Save()
+
+    Write-Host "✅ Shortcut created at: $shortcutPath"
+}
+
 function Install-PowerShell-7 {
     [CmdletBinding()]
     param ()

@@ -83,7 +83,7 @@ func main() {
 
 		switch {
 		case strings.EqualFold(label, "SQL Developer"):
-			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads)
+			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
 
 		case strings.EqualFold(funcName, "Install-CherryTree"):
 			appKey := "cherry tree"
@@ -157,8 +157,9 @@ Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\Scripts\pip3.exe'
 
 // --- Helper functions ---
 
-func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}) {
+func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}, modulePath string) {
 	appKey := "sql developer"
+
 	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
 	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 
@@ -192,6 +193,26 @@ func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, 
 	}
 	log.Println("✅ SQL Developer extracted.")
 	log.Printf("📝 SQL Developer log path: %s", sqlLogPath)
+
+	// Step: Create shortcut using the module's New-DesktopShortcut
+	exePath := filepath.Join(extractDir, "sqldeveloper", "sqldeveloper.exe")
+	psContent := fmt.Sprintf(`Import-Module '%s'
+New-DesktopShortcut -TargetPath '%s' -Description 'Oracle SQL Developer'
+`, modulePath, exePath)
+
+	psScriptName := "create-sqldeveloper-shortcut.ps1"
+	if err := os.WriteFile(psScriptName, []byte(psContent), 0644); err != nil {
+		log.Fatalf("❌ Failed to write shortcut script: %v", err)
+	}
+
+	log.Println("📌 Creating SQL Developer desktop shortcut...")
+	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", psScriptName)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("❌ Failed to create SQL Developer shortcut: %v", err)
+	}
+	log.Println("✅ SQL Developer shortcut created on desktop.")
 }
 
 func unzip(src string, dest string) error {

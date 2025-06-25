@@ -1264,86 +1264,163 @@ function Install-WinSCP {
 }
 
 function Install-MobaXterm {
+
     [CmdletBinding()]
     param ()
 
     Write-Host "🚀 Starting installation of MobaXterm..."
 
-    $arguments = @(
-        "install"
-        "mobaxterm"
-        "--yes"
-    )
+    # Try to resolve choco path
+    $chocoPath = Get-Command choco -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+
+    if (-not $chocoPath) {
+        $defaultChoco = "C:\ProgramData\chocolatey\bin\choco.exe"
+        if (Test-Path $defaultChoco) {
+            $chocoPath = $defaultChoco
+        } else {
+            Write-Error "❌ Chocolatey not found. Please install Chocolatey first."
+            return
+        }
+    }
+
+    $arguments = @("install", "mobaxterm", "--yes")
 
     try {
-        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ MobaXterm installed successfully."
+        Start-Process -FilePath $chocoPath -ArgumentList $arguments -Wait -NoNewWindow
+
+        # Confirm installation
+        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern '^mobaxterm'
+
+        if ($isInstalled) {
+            Write-Host "✅ MobaXterm installed successfully."
+        } else {
+            Write-Warning "⚠️ MobaXterm install completed, but it may not be installed correctly."
+        }
+
     } catch {
         Write-Error "❌ Failed to install MobaXterm. Error: $_"
     }
 }
 
 function Install-Go {
+
     [CmdletBinding()]
     param ()
 
     Write-Host "🚀 Starting installation of Go..."
 
-    $arguments = @(
-        "install"
-        "golang"
-        "--yes"
-    )
+    # Resolve choco path
+    $chocoPath = Get-Command choco -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+
+    if (-not $chocoPath) {
+        $defaultChoco = "C:\ProgramData\chocolatey\bin\choco.exe"
+        if (Test-Path $defaultChoco) {
+            $chocoPath = $defaultChoco
+        } else {
+            Write-Error "❌ Chocolatey not found. Please install Chocolatey first."
+            return
+        }
+    }
+
+    $arguments = @("install", "golang", "--yes")
 
     try {
-        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ Go installed successfully."
+        Start-Process -FilePath $chocoPath -ArgumentList $arguments -Wait -NoNewWindow
+
+        # Verify installation
+        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern '^golang'
+
+        if ($isInstalled) {
+            Write-Host "✅ Go installed successfully."
+        } else {
+            Write-Warning "⚠️ Installation completed, but Go may not be fully installed."
+        }
+
     } catch {
         Write-Error "❌ Failed to install Go. Error: $_"
     }
 }
 
 function Install-NotepadPP {
+
     [CmdletBinding()]
     param ()
 
     Write-Host "🚀 Starting installation of Notepad++..."
 
-    $arguments = @(
-        "install"
-        "notepadplusplus"
-        "--yes"
-    )
+    # Resolve Chocolatey path
+    $chocoPath = Get-Command choco -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+
+    if (-not $chocoPath) {
+        $defaultChoco = "C:\ProgramData\chocolatey\bin\choco.exe"
+        if (Test-Path $defaultChoco) {
+            $chocoPath = $defaultChoco
+        } else {
+            Write-Error "❌ Chocolatey not found. Please install Chocolatey first."
+            return
+        }
+    }
+
+    $arguments = @("install", "notepadplusplus", "--yes")
 
     try {
-        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ Notepad++ installed successfully."
+        Start-Process -FilePath $chocoPath -ArgumentList $arguments -Wait -NoNewWindow
+
+        # Verify installation
+        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern '^notepadplusplus'
+
+        if ($isInstalled) {
+            Write-Host "✅ Notepad++ installed successfully."
+        } else {
+            Write-Warning "⚠️ Install command ran, but Notepad++ may not be fully installed."
+        }
+
     } catch {
         Write-Error "❌ Failed to install Notepad++. Error: $_"
     }
 }
 
 function Install-SQLiteBrowser {
+
     [CmdletBinding()]
     param ()
 
     Write-Host "🚀 Starting installation of DB Browser for SQLite..."
 
-    $arguments = @(
-        "install"
-        "sqlitebrowser"
-        "--yes"
-    )
+    # Resolve Chocolatey path
+    $chocoPath = Get-Command choco -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+
+    if (-not $chocoPath) {
+        $defaultChoco = "C:\ProgramData\chocolatey\bin\choco.exe"
+        if (Test-Path $defaultChoco) {
+            $chocoPath = $defaultChoco
+        } else {
+            Write-Error "❌ Chocolatey not found. Please install Chocolatey first."
+            return
+        }
+    }
+
+    $arguments = @("install", "sqlitebrowser", "--yes")
 
     try {
-        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ DB Browser for SQLite installed successfully."
+        Start-Process -FilePath $chocoPath -ArgumentList $arguments -Wait -NoNewWindow
+
+        # Verify installation
+        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern '^sqlitebrowser'
+
+        if ($isInstalled) {
+            Write-Host "✅ DB Browser for SQLite installed successfully."
+        } else {
+            Write-Warning "⚠️ Install completed, but DB Browser for SQLite may not be fully installed."
+        }
+
     } catch {
         Write-Error "❌ Failed to install DB Browser for SQLite. Error: $_"
     }
 }
 
 function Install-Java {
+
     [CmdletBinding()]
     param (
         [string]$PackageName = "temurin21"
@@ -1351,36 +1428,51 @@ function Install-Java {
 
     Write-Host "🚀 Starting installation of Java package: $PackageName..."
 
-    $arguments = @(
-        "install"
-        $PackageName
-        "--yes"
-    )
+    # Resolve Chocolatey path
+    $chocoPath = Get-Command choco -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+    if (-not $chocoPath) {
+        $defaultChoco = "C:\ProgramData\chocolatey\bin\choco.exe"
+        if (Test-Path $defaultChoco) {
+            $chocoPath = $defaultChoco
+        } else {
+            Write-Error "❌ Chocolatey not found. Please install Chocolatey first."
+            return
+        }
+    }
+
+    $arguments = @("install", $PackageName, "--yes")
 
     try {
-        Start-Process -FilePath "choco" -ArgumentList $arguments -Wait -NoNewWindow
-        Write-Host "✅ Java ($PackageName) installed successfully."
+        Start-Process -FilePath $chocoPath -ArgumentList $arguments -Wait -NoNewWindow
 
-        # Handle hardcoded JAVA_HOME for Temurin 21
+        # Confirm installation
+        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern "^\Q$PackageName\E"
+        if ($isInstalled) {
+            Write-Host "✅ Java ($PackageName) installed successfully."
+        } else {
+            Write-Warning "⚠️ Install completed, but $PackageName may not be fully installed."
+        }
+
+        # Set JAVA_HOME
+        $javaHomePath = $null
+
         if ($PackageName -ieq "temurin21") {
             $javaHomePath = "C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot"
-            [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
-            Write-Host "🌱 JAVA_HOME set to: $javaHomePath"
-        }
-        else {
-            # Try to auto-detect JDK install path under Eclipse Adoptium
+        } else {
             $jdkDir = Get-ChildItem "C:\Program Files\Eclipse Adoptium\" -Directory |
                       Where-Object { $_.Name -like "jdk*" } |
                       Sort-Object LastWriteTime -Descending |
                       Select-Object -First 1
-
             if ($jdkDir) {
                 $javaHomePath = $jdkDir.FullName
-                [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
-                Write-Host "🌱 JAVA_HOME auto-set to: $javaHomePath"
-            } else {
-                Write-Warning "⚠️ Could not find Eclipse Adoptium JDK install directory to set JAVA_HOME."
             }
+        }
+
+        if ($javaHomePath -and (Test-Path $javaHomePath)) {
+            [Environment]::SetEnvironmentVariable("JAVA_HOME", $javaHomePath, [System.EnvironmentVariableTarget]::Machine)
+            Write-Host "🌱 JAVA_HOME auto-set to: $javaHomePath"
+        } else {
+            Write-Warning "⚠️ Could not determine JAVA_HOME path. You may need to set it manually."
         }
 
     } catch {

@@ -78,7 +78,7 @@ if ((Test-Path $install_exe) -and (Test-Path $install_path) -and (Test-Path $psm
     Write-Error "❌ Missing files for install-things"
 }
 
-# --- Step 6: Run config tools (no arguments) ---
+# --- Step 5: Run config tools (no arguments) ---
 $config_tools = @(
     "configure-settings-for-windows-terminal\configure-settings-for-windows-terminal.exe",
     "configure-settings-for-vs-code\configure-settings-for-vs-code.exe",
@@ -98,7 +98,7 @@ foreach ($tool_rel in $config_tools) {
     }
 }
 
-# --- Step 7: Update PowerShell profiles ---
+# --- Step 6: Update PowerShell profiles ---
 $ps7_profile_exe = Join-Path $base_path "go-projects\powershell-007-profile\powershell-007-profile.exe"
 $ps5_profile_exe = Join-Path $base_path "go-projects\powershell-005-profile\powershell-005-profile.exe"
 
