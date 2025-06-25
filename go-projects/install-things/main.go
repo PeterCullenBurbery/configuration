@@ -135,7 +135,14 @@ func main() {
 				log.Println("📁 Miniconda installer already present.")
 			}
 
-			psContent := fmt.Sprintf("Import-Module '%s'\nInstall-Miniconda -InstallerPath '%s'\n", *modulePath, installerPath)
+			psContent := fmt.Sprintf(`Import-Module '%s'
+Install-Miniconda -InstallerPath '%s'
+
+# Add Python and Pip to PATH
+Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\python.exe'
+Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\Scripts\pip3.exe'
+`, *modulePath, installerPath)
+
 			runPowerShellScript("install-miniconda.ps1", psContent, logFile)
 
 		default:
