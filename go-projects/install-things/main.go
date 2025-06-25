@@ -36,6 +36,13 @@ func main() {
 	defer logFile.Close()
 	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
+	// Step 1: Run Install-Choco first
+	log.Println("🍫 Installing Chocolatey using Install-Choco...")
+	psContent := fmt.Sprintf("Import-Module '%s'\nInstall-Choco\n", *modulePath)
+	runPowerShellScript("install-choco.ps1", psContent, logFile)
+	log.Println("✅ Chocolatey installation complete.")
+
+	// Step 2: Load YAML
 	var raw map[string]interface{}
 	data, err := os.ReadFile(*installPath)
 	if err != nil {
@@ -66,28 +73,34 @@ func main() {
 	_ = os.MkdirAll(globalLogDir, os.ModePerm)
 	_ = os.MkdirAll(globalDownloadDir, os.ModePerm)
 
-	var psScript strings.Builder
-	psScript.WriteString(fmt.Sprintf("Import-Module '%s'\n", *modulePath))
-
 	for _, label := range programs {
+		if strings.EqualFold(label, "Choco") {
+			continue // ✅ Already handled above
+		}
+
 		funcName := toInstallFunctionName(label)
-		log.Printf("✔️ Queued installer: %s → %s", label, funcName)
+		log.Printf("➡️  Starting: %s → %s", label, funcName)
 
 		switch {
+		case strings.EqualFold(label, "SQL Developer"):
+			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads)
+
 		case strings.EqualFold(funcName, "Install-CherryTree"):
 			appKey := "cherry tree"
 			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
 			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 			timestamp := formatTimestamp()
+
 			logDir := filepath.Join(globalLogDir, subLog)
 			logFileName := fmt.Sprintf("cherrytree_%s.log", timestamp)
 			cherryLogPath := filepath.Join(logDir, logFileName)
 			cherryInstallPath := filepath.Join(globalDownloadDir, subDownload)
-			installerPath := filepath.Join(cherryInstallPath, "cherrytree_1.5.0.0_win64_setup.exe")
-			installerURL := "https://www.giuspen.net/software/cherrytree_1.5.0.0_win64_setup.exe"
 
 			_ = os.MkdirAll(logDir, os.ModePerm)
 			_ = os.MkdirAll(cherryInstallPath, os.ModePerm)
+
+			installerPath := filepath.Join(cherryInstallPath, "cherrytree_1.5.0.0_win64_setup.exe")
+			installerURL := "https://www.giuspen.net/software/cherrytree_1.5.0.0_win64_setup.exe"
 
 			if !fileExists(installerPath) {
 				log.Printf("🌐 Downloading CherryTree from: %s", installerURL)
@@ -100,7 +113,8 @@ func main() {
 			}
 
 			log.Printf("📝 CherryTree log path: %s", cherryLogPath)
-			psScript.WriteString(fmt.Sprintf(`%s -log '%s' -installPath '%s'`+"\n", funcName, cherryLogPath, cherryInstallPath))
+			psContent := fmt.Sprintf("Import-Module '%s'\nInstall-CherryTree -log '%s' -installPath '%s'\n", *modulePath, cherryLogPath, cherryInstallPath)
+			runPowerShellScript("install-cherrytree.ps1", psContent, logFile)
 
 		case strings.EqualFold(funcName, "Install-Miniconda"):
 			appKey := "python"
@@ -121,30 +135,20 @@ func main() {
 				log.Println("📁 Miniconda installer already present.")
 			}
 
-			psScript.WriteString(fmt.Sprintf(`%s -InstallerPath '%s'`+"\n", funcName, installerPath))
-
-		case strings.EqualFold(label, "SQL Developer"):
-			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads)
+			psContent := fmt.Sprintf("Import-Module '%s'\nInstall-Miniconda -InstallerPath '%s'\n", *modulePath, installerPath)
+			runPowerShellScript("install-miniconda.ps1", psContent, logFile)
 
 		default:
-			psScript.WriteString(funcName + "\n")
+			scriptName := fmt.Sprintf("install-%s.ps1", strings.ToLower(strings.ReplaceAll(label, " ", "-")))
+			psContent := fmt.Sprintf("Import-Module '%s'\n%s\n", *modulePath, funcName)
+			runPowerShellScript(scriptName, psContent, logFile)
 		}
 	}
 
-	tempScript := "install-run.ps1"
-	if err := os.WriteFile(tempScript, []byte(psScript.String()), 0644); err != nil {
-		log.Fatalf("❌ Failed to write PowerShell script: %v", err)
-	}
-
-	log.Println("🚀 Executing install script...")
-	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", tempScript)
-	cmd.Stdout = logFile
-	cmd.Stderr = logFile
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("❌ PowerShell script failed: %v", err)
-	}
-	log.Println("✅ Installation complete.")
+	log.Println("🎉 All installations completed.")
 }
+
+
 
 // --- Helper functions ---
 
@@ -334,4 +338,18 @@ func fileExists(path string) bool {
 
 func formatTimestamp() string {
 	return time.Now().Format("20060102_150405")
+}
+
+// New helper to run each individual script:
+func runPowerShellScript(filename, content string, logFile *os.File) {
+	if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
+		log.Fatalf("❌ Failed to write script %s: %v", filename, err)
+	}
+	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", filename)
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("❌ Failed to run %s: %v", filename, err)
+	}
+	log.Printf("✅ Finished: %s", filename)
 }

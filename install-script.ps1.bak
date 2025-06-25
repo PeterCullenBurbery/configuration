@@ -135,3 +135,22 @@ if (Test-Path $ps7_profile_exe) {
 $global_end = Get-Date
 $total_seconds = [math]::Round(($global_end - $global_start).TotalSeconds, 2)
 Write-Host "`n⏱️ Total execution time: $total_seconds seconds."
+
+#install Visual Studio
+# choco install visualstudio2022community --yes
+
+# restart
+
+# install Visual Studio C++ build tools
+# Start-Process -FilePath "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe" -ArgumentList @(
+#     'modify',
+#     '--installPath', '"C:\Program Files\Microsoft Visual Studio\2022\Community"',
+#     '--add', 'Microsoft.VisualStudio.Workload.NativeDesktop',
+#     '--includeRecommended',
+#     '--includeOptional',
+#     '--passive',
+#     '--norestart',
+#     '--force'
+# ) -Wait
+
+# restart

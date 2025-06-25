@@ -5,6 +5,12 @@ install:
     - VS code
     - 7zip
     - voidtools everything
+    - SQL Developer
+    - WinSCP
+    - MobaXTerm
+    - cherrytree
+    - Go
+    - Notepad++
   logs:
     global log directory: |
       C:\logs
