@@ -11,6 +11,8 @@ install:
     - Go
     - Notepad++
     - SQLite Browser
+    - Miniconda
+    - Java
   logs:
     global log directory: |
       C:\logs
@@ -23,3 +25,7 @@ install:
     per app download directories:
       cherry tree: |
         cherry-tree
+      Python:
+        miniconda
+      SQL Developer:
+        sql-developer
