@@ -1,1 +1,4 @@
-/go-projects/download-zip/
+/go-projects/download-zip/*
+!/go-projects/download-zip/host/
+/go-projects/download-zip/host/*
+!/go-projects/download-zip/host/nirsoft_package_enc_1.30.19.zip
