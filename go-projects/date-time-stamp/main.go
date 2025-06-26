@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"bytes"
 	"log"
 	"os"
 	"os/exec"
@@ -9,47 +9,73 @@ import (
 )
 
 func main() {
-	// Create temp directory
-	tempDir, err := os.MkdirTemp("", "java_hello_world")
+	// Create temporary directory
+	tempDir, err := os.MkdirTemp("", "formatted_time_zone_info")
 	if err != nil {
 		log.Fatalf("❌ Failed to create temp directory: %v", err)
 	}
-	defer os.RemoveAll(tempDir) // Clean up after execution
+	defer os.RemoveAll(tempDir)
 
-	// Java file path
-	javaFilePath := filepath.Join(tempDir, "HelloWorld.java")
+	javaFileName := "formatted_time_zone_info.java"
+	className := "formatted_time_zone_info"
+	javaFilePath := filepath.Join(tempDir, javaFileName)
 
 	// Java source code
-	javaCode := `public class HelloWorld {
+	javaCode := `import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
+
+public class formatted_time_zone_info {
     public static void main(String[] args) {
-        System.out.println("Hello, World from Java!");
+        ZonedDateTime now = ZonedDateTime.now();
+        ZoneId tz = now.getZone();
+
+        String date_part = now.format(DateTimeFormatter.ofPattern("yyyy-0MM-0dd"));
+        String time_part = now.format(DateTimeFormatter.ofPattern("0HH.0mm.0ss.nnnnnnn"));
+
+        WeekFields wf = WeekFields.ISO;
+        int week = now.get(wf.weekOfWeekBasedYear());
+        int weekday = now.get(wf.dayOfWeek());
+        int iso_year = now.get(wf.weekBasedYear());
+        int day_of_year = now.getDayOfYear();
+
+        String output = String.format(
+            "%s %s %04d-W%03d-%03d %04d-%03d",
+            date_part, time_part, iso_year, week, weekday, now.getYear(), day_of_year
+        );
+        output = output.replace(time_part, time_part + " " + tz);
+        System.out.println(output);
     }
 }`
 
-	// Write the Java file
+	// Write Java file
 	err = os.WriteFile(javaFilePath, []byte(javaCode), 0644)
 	if err != nil {
 		log.Fatalf("❌ Failed to write Java file: %v", err)
 	}
-	fmt.Println("📄 Java source written to:", javaFilePath)
 
-	// Compile the Java source
-	cmdCompile := exec.Command("javac", "HelloWorld.java")
+	// Compile Java file
+	cmdCompile := exec.Command("javac", javaFileName)
 	cmdCompile.Dir = tempDir
-	cmdCompile.Stdout = os.Stdout
-	cmdCompile.Stderr = os.Stderr
 	if err := cmdCompile.Run(); err != nil {
-		log.Fatalf("❌ Failed to compile Java code: %v", err)
+		log.Fatalf("❌ Failed to compile Java file: %v", err)
 	}
-	fmt.Println("✅ Java compiled successfully.")
 
-	// Run the compiled Java class
-	cmdRun := exec.Command("java", "HelloWorld")
+	// Run compiled class and capture output
+	cmdRun := exec.Command("java", className)
 	cmdRun.Dir = tempDir
-	cmdRun.Stdout = os.Stdout
-	cmdRun.Stderr = os.Stderr
+
+	var out bytes.Buffer
+	cmdRun.Stdout = &out
+	cmdRun.Stderr = &out
+
 	if err := cmdRun.Run(); err != nil {
-		log.Fatalf("❌ Failed to run Java class: %v", err)
+		log.Fatalf("❌ Failed to run Java class: %v\nOutput:\n%s", err, out.String())
 	}
-	fmt.Println("🏁 Finished running Java program.")
+
+	// Print only the timestamp output (no extra newline)
+	_, err = os.Stdout.Write(out.Bytes())
+	if err != nil {
+		log.Fatalf("❌ Failed to write output: %v", err)
+	}
 }

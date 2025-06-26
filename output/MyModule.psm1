@@ -1550,7 +1550,6 @@ function Install-SQLiteBrowser {
 }
 
 function Install-Java {
-
     [CmdletBinding()]
     param (
         [string]$PackageName = "temurin21"
@@ -1575,8 +1574,9 @@ function Install-Java {
     try {
         Start-Process -FilePath $chocoPath -ArgumentList $arguments -Wait -NoNewWindow
 
-        # Confirm installation
-        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern "^\Q$PackageName\E"
+        # Confirm installation (FIXED)
+        $escapedName = [regex]::Escape($PackageName)
+        $isInstalled = & $chocoPath list --local-only | Select-String -Pattern ("^" + $escapedName)
         if ($isInstalled) {
             Write-Host "✅ Java ($PackageName) installed successfully."
         } else {

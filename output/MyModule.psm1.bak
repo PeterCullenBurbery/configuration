@@ -822,35 +822,39 @@ function Enable-SSHFirewallRule {
     param ()
 
     $port = 22
-    $ruleName = "Allow-SSH"
+    $rule_name = "Allow-SSH"
 
-    # Check if any enabled inbound allow rule allows TCP port 22
-    $existingRule = Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow |
+    # Get active network profiles
+    $active_profiles = (Get-NetConnectionProfile).NetworkCategory
+
+    # Look for any enabled inbound rule that allows TCP port 22 AND includes the active profile
+    $rule_covers_active_profile = Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow |
         Where-Object {
+            ($_ | Get-NetFirewallPortFilter).Protocol -eq "TCP" -and
             ($_ | Get-NetFirewallPortFilter).LocalPort -eq "$port" -and
-            ($_ | Get-NetFirewallPortFilter).Protocol -eq "TCP"
+            ($_ | Get-NetFirewallProfile).Profile -match $active_profiles
         }
 
-    if (-not $existingRule) {
-        Write-Host "🔐 SSH on port 22 is currently blocked by the firewall. Creating rule '$ruleName'..."
+    if (-not $rule_covers_active_profile) {
+        Write-Host "🔐 No firewall rule allows SSH on port 22 for profile(s): $active_profiles. Creating '$rule_name'..."
 
         try {
-            New-NetFirewallRule -Name $ruleName -DisplayName "Allow SSH on Port 22" `
+            New-NetFirewallRule -Name $rule_name -DisplayName "Allow SSH on Port 22" `
                 -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort $port `
-                -Profile Private,Domain,Public -ErrorAction Stop
+                -Profile Domain,Private,Public -ErrorAction Stop
 
-            # Verify rule was created
-            $rule = Get-NetFirewallRule -Name $ruleName -ErrorAction Stop
+            # Post-creation verification
+            $rule = Get-NetFirewallRule -Name $rule_name -ErrorAction Stop
             if ($rule.Enabled -eq 'True' -and $rule.Direction -eq 'Inbound' -and $rule.Action -eq 'Allow') {
-                Write-Host "✅ Rule '$ruleName' successfully created and verified."
+                Write-Host "✅ Rule '$rule_name' successfully created and verified."
             } else {
-                Write-Warning "⚠️ Rule '$ruleName' was created but doesn't match expected parameters."
+                Write-Warning "⚠️ Rule '$rule_name' was created but doesn't match expected parameters."
             }
         } catch {
-            Write-Error "❌ Failed to create or verify firewall rule: $_"
+            Write-Error "❌ Failed to create or verify rule '$rule_name': $_"
         }
     } else {
-        Write-Host "✅ SSH on port 22 is already allowed through the firewall. No action needed."
+        Write-Host "✅ SSH is already allowed on port 22 for profile(s): $active_profiles. No action needed."
     }
 }
 
