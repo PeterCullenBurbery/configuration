@@ -21,6 +21,14 @@ func main() {
 		log.Fatal("❌ --yaml is required")
 	}
 
+	// Use hardcoded full path to code.cmd
+	codePath := `C:\Program Files\Microsoft VS Code\bin\code.cmd`
+
+	if _, err := os.Stat(codePath); os.IsNotExist(err) {
+		log.Fatalf("❌ code.cmd not found at: %s", codePath)
+	}
+
+	// Load and parse YAML
 	data, err := os.ReadFile(*yamlPath)
 	if err != nil {
 		log.Fatalf("❌ Failed to read YAML file: %v", err)
@@ -40,7 +48,7 @@ func main() {
 	for _, ext := range config.VSCodeExtensions {
 		log.Printf("🔧 Installing VS Code extension: %s\n", ext)
 
-		cmd := exec.Command("code", "--install-extension", ext)
+		cmd := exec.Command(codePath, "--install-extension", ext)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
