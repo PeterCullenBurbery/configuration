@@ -78,22 +78,7 @@ if ((Test-Path $install_exe) -and (Test-Path $install_path) -and (Test-Path $psm
     Write-Error "❌ Missing files for install-things"
 }
 
-# --- Step 5: Add Miniconda to PATH using Go CLI ---
-$miniconda_path_exe = Join-Path $base_path "go-projects\add-miniconda-to-path-by-executing-go-cli\add-miniconda-to-path-by-executing-go-cli.exe"
-
-if ((Test-Path $miniconda_path_exe) -and (Test-Path $go_command_cli)) {
-    $start = Get-Date
-    Write-Host "🐍 Running add-miniconda-to-path-by-executing-go-cli.exe..."
-    Start-Process -FilePath $miniconda_path_exe `
-        -ArgumentList "--cli", "`"$go_command_cli`"" `
-        -Wait
-    $end = Get-Date
-    Write-Host "✅ Miniconda PATH updated in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
-} else {
-    Write-Error "❌ Missing Go CLI or Miniconda executable for path update"
-}
-
-# --- Step 6: Run config tools (no arguments) ---
+# --- Step 5: Run config tools (no arguments) ---
 $config_tools = @(
     "configure-settings-for-windows-terminal\configure-settings-for-windows-terminal.exe",
     "configure-settings-for-vs-code\configure-settings-for-vs-code.exe",
@@ -113,7 +98,7 @@ foreach ($tool_rel in $config_tools) {
     }
 }
 
-# --- Step 7: Update PowerShell profiles ---
+# --- Step 6: Update PowerShell profiles ---
 $ps7_profile_exe = Join-Path $base_path "go-projects\powershell-007-profile\powershell-007-profile.exe"
 $ps5_profile_exe = Join-Path $base_path "go-projects\powershell-005-profile\powershell-005-profile.exe"
 
@@ -129,6 +114,44 @@ if (Test-Path $ps7_profile_exe) {
     Start-Process -FilePath $ps7_profile_exe -Wait
 } else {
     Write-Warning "⚠️ PowerShell 7 profile updater not found"
+}
+
+# --- Step 7: Run enable-ssh.exe if SSH is enabled in config.yaml ---
+
+$enable_ssh_exe = Join-Path $base_path "go-projects\enable-ssh\enable-ssh.exe"
+$enable_ssh_log = Join-Path $env:TEMP "$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')_enable-ssh.log"
+
+if ((Test-Path $enable_ssh_exe) -and (Test-Path $config_path) -and (Test-Path $psm1_path)) {
+    $start = Get-Date
+    Write-Host "🔐 Running enable-ssh.exe..."
+
+    Start-Process -FilePath $enable_ssh_exe `
+        -ArgumentList "--yaml", "`"$config_path`"", "--module", "`"$psm1_path`"", "--log", "`"$enable_ssh_log`"" `
+        -Wait
+
+    $end = Get-Date
+    Write-Host "✅ enable-ssh completed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
+} else {
+    Write-Warning "⚠️ Missing enable-ssh.exe, config.yaml, or PowerShell module."
+}
+
+# --- Step 8: Install VS Code extensions from YAML ---
+
+$vs_code_yaml_path = Join-Path $base_path "vs-code-extensions.yaml"
+$install_extensions_exe = Join-Path $base_path "go-projects\install-vs-code-extensions\install-vs-code-extensions.exe"
+
+if ((Test-Path $install_extensions_exe) -and (Test-Path $vs_code_yaml_path)) {
+    $start = Get-Date
+    Write-Host "🧩 Installing VS Code extensions from YAML..."
+
+    Start-Process -FilePath $install_extensions_exe `
+        -ArgumentList "--yaml", "`"$vs_code_yaml_path`"" `
+        -Wait
+
+    $end = Get-Date
+    Write-Host "✅ VS Code extensions installed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
+} else {
+    Write-Warning "⚠️ Missing install-vs-code-extensions.exe or vs-code-extensions.yaml"
 }
 
 # --- Print total execution time ---

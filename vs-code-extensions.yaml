@@ -5,6 +5,7 @@ vs_code_extensions:
   - ms-python.vscode-pylance
   - ms-vscode.powershell
   - redhat.java
+  - tomoki1207.pdf
   - visualstudioexptteam.intellicode-api-usage-examples
   - visualstudioexptteam.vscodeintellicode
   - vscjava.vscode-gradle

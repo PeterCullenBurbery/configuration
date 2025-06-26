@@ -20,6 +20,8 @@
 - Reset-12HourTimeFormat
 - Set-FirstDayOfWeekMonday
 - Set-FirstDayOfWeekSunday
+- Enable-SSH
+- Enable-SSHFirewallRule
 - Get-IanaTimeZone
 - Get-IsoWeekDate
 - Get-IsoOrdinalDate
@@ -31,6 +33,7 @@
 - Remove-FromPSModulePath
 - Add-DomainAdminUser
 - Test-Is64Bit
+- New-DesktopShortcut
 - Install-PowerShell-7
 - Install-VSCode
 - Install-7Zip

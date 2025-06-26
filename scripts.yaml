@@ -786,6 +786,93 @@ configuration:
                 Write-Error "❌ Failed to set first day of week: $_"
             }
         }
+  ssh:
+    enable: |
+      function Enable-SSH {
+          [CmdletBinding()]
+          param ()
+
+          $service_name = "sshd"
+
+          while ($true) {
+              $service = Get-Service -Name $service_name -ErrorAction SilentlyContinue
+
+              if (-not $service) {
+                  Write-Error "❌ Service '$service_name' not found."
+                  return
+              }
+
+              $status = $service.Status
+              $start_mode = (Get-CimInstance -ClassName Win32_Service -Filter "Name='$service_name'").StartMode
+
+              Write-Host "🔎 Current State — Name: $($service.Name) | Status: $status | StartType: $start_mode"
+
+              $changed = $false
+
+              if ($start_mode -ne "Auto") {
+                  Write-Host "⚙️ Setting StartType to 'Automatic'..."
+                  Set-Service -Name $service_name -StartupType Automatic
+                  $changed = $true
+              }
+
+              if ($status -ne "Running") {
+                  Write-Host "🚀 Starting SSHD service..."
+                  Start-Service -Name $service_name
+                  $changed = $true
+              }
+
+              if (-not $changed) {
+                  Write-Host "✅ SSHD is Running and set to Automatic. Done."
+                  break
+              }
+
+              Start-Sleep -Seconds 2
+          }
+
+          # Final confirmation in requested format
+          Get-Service -Name $service_name | Select-Object Name, Status, StartType
+      }
+    firewall: |
+      function Enable-SSHFirewallRule {
+          [CmdletBinding()]
+          param ()
+
+          $port = 22
+          $rule_name = "Allow-SSH"
+
+          # Get active network profiles
+          $active_profiles = (Get-NetConnectionProfile).NetworkCategory
+
+          # Look for any enabled inbound rule that allows TCP port 22 AND includes the active profile
+          $rule_covers_active_profile = Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow |
+              Where-Object {
+                  ($_ | Get-NetFirewallPortFilter).Protocol -eq "TCP" -and
+                  ($_ | Get-NetFirewallPortFilter).LocalPort -eq "$port" -and
+                  ($_ | Get-NetFirewallProfile).Profile -match $active_profiles
+              }
+
+          if (-not $rule_covers_active_profile) {
+              Write-Host "🔐 No firewall rule allows SSH on port 22 for profile(s): $active_profiles. Creating '$rule_name'..."
+
+              try {
+                  New-NetFirewallRule -Name $rule_name -DisplayName "Allow SSH on Port 22" `
+                      -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort $port `
+                      -Profile Domain,Private,Public -ErrorAction Stop
+
+                  # Post-creation verification
+                  $rule = Get-NetFirewallRule -Name $rule_name -ErrorAction Stop
+                  if ($rule.Enabled -eq 'True' -and $rule.Direction -eq 'Inbound' -and $rule.Action -eq 'Allow') {
+                      Write-Host "✅ Rule '$rule_name' successfully created and verified."
+                  } else {
+                      Write-Warning "⚠️ Rule '$rule_name' was created but doesn't match expected parameters."
+                  }
+              } catch {
+                  Write-Error "❌ Failed to create or verify rule '$rule_name': $_"
+              }
+          } else {
+              Write-Host "✅ SSH is already allowed on port 22 for profile(s): $active_profiles. No action needed."
+          }
+      }
 general:
   date time:
     IANA time zone: |

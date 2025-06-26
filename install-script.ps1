@@ -116,23 +116,23 @@ if (Test-Path $ps7_profile_exe) {
     Write-Warning "⚠️ PowerShell 7 profile updater not found"
 }
 
-# --- Step 7: Install VS Code extensions from YAML ---
+# --- Step 7: Run enable-ssh.exe if SSH is enabled in config.yaml ---
 
-$vs_code_yaml_path = Join-Path $base_path "vs-code-extensions.yaml"
-$install_extensions_exe = Join-Path $base_path "go-projects\install-vs-code-extensions\install-vs-code-extensions.exe"
+$enable_ssh_exe = Join-Path $base_path "go-projects\enable-ssh\enable-ssh.exe"
+$enable_ssh_log = Join-Path $env:TEMP "$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')_enable-ssh.log"
 
-if ((Test-Path $install_extensions_exe) -and (Test-Path $vs_code_yaml_path)) {
+if ((Test-Path $enable_ssh_exe) -and (Test-Path $config_path) -and (Test-Path $psm1_path)) {
     $start = Get-Date
-    Write-Host "🧩 Installing VS Code extensions from YAML..."
+    Write-Host "🔐 Running enable-ssh.exe..."
 
-    Start-Process -FilePath $install_extensions_exe `
-        -ArgumentList "--yaml", "`"$vs_code_yaml_path`"" `
+    Start-Process -FilePath $enable_ssh_exe `
+        -ArgumentList "--yaml", "`"$config_path`"", "--module", "`"$psm1_path`"", "--log", "`"$enable_ssh_log`"" `
         -Wait
 
     $end = Get-Date
-    Write-Host "✅ VS Code extensions installed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
+    Write-Host "✅ enable-ssh completed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
 } else {
-    Write-Warning "⚠️ Missing install-vs-code-extensions.exe or vs-code-extensions.yaml"
+    Write-Warning "⚠️ Missing enable-ssh.exe, config.yaml, or PowerShell module."
 }
 
 # --- Print total execution time ---

@@ -14,3 +14,4 @@ configuration_profile:
     set first day of the week to Monday: on
   powershell modules: |
     C:\powershell-modules\
+  ssh: on

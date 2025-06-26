@@ -4,9 +4,6 @@ install:
     - VS code
     - 7zip
     - voidtools everything
-    - Python
-    - Go
-    - Java
   logs:
     global log directory: |
       C:\logs

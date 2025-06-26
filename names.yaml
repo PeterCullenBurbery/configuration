@@ -20,6 +20,8 @@
 - Reset-12HourTimeFormat
 - Set-FirstDayOfWeekMonday
 - Set-FirstDayOfWeekSunday
+- Enable-SSH
+- Enable-SSHFirewallRule
 - Get-IanaTimeZone
 - Get-IsoWeekDate
 - Get-IsoOrdinalDate

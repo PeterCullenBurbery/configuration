@@ -772,6 +772,88 @@ public static extern int SendMessageTimeout(
     }
 }
 
+function Enable-SSH {
+    [CmdletBinding()]
+    param ()
+
+    $service_name = "sshd"
+
+    while ($true) {
+        $service = Get-Service -Name $service_name -ErrorAction SilentlyContinue
+
+        if (-not $service) {
+            Write-Error "❌ Service '$service_name' not found."
+            return
+        }
+
+        $status = $service.Status
+        $start_mode = (Get-CimInstance -ClassName Win32_Service -Filter "Name='$service_name'").StartMode
+
+        Write-Host "🔎 Current State — Name: $($service.Name) | Status: $status | StartType: $start_mode"
+
+        $changed = $false
+
+        if ($start_mode -ne "Auto") {
+            Write-Host "⚙️ Setting StartType to 'Automatic'..."
+            Set-Service -Name $service_name -StartupType Automatic
+            $changed = $true
+        }
+
+        if ($status -ne "Running") {
+            Write-Host "🚀 Starting SSHD service..."
+            Start-Service -Name $service_name
+            $changed = $true
+        }
+
+        if (-not $changed) {
+            Write-Host "✅ SSHD is Running and set to Automatic. Done."
+            break
+        }
+
+        Start-Sleep -Seconds 2
+    }
+
+    # Final confirmation in requested format
+    Get-Service -Name $service_name | Select-Object Name, Status, StartType
+}
+
+function Enable-SSHFirewallRule {
+    [CmdletBinding()]
+    param ()
+
+    $port = 22
+    $ruleName = "Allow-SSH"
+
+    # Check if any enabled inbound allow rule allows TCP port 22
+    $existingRule = Get-NetFirewallRule -Enabled True -Direction Inbound -Action Allow |
+        Where-Object {
+            ($_ | Get-NetFirewallPortFilter).LocalPort -eq "$port" -and
+            ($_ | Get-NetFirewallPortFilter).Protocol -eq "TCP"
+        }
+
+    if (-not $existingRule) {
+        Write-Host "🔐 SSH on port 22 is currently blocked by the firewall. Creating rule '$ruleName'..."
+
+        try {
+            New-NetFirewallRule -Name $ruleName -DisplayName "Allow SSH on Port 22" `
+                -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort $port `
+                -Profile Private,Domain,Public -ErrorAction Stop
+
+            # Verify rule was created
+            $rule = Get-NetFirewallRule -Name $ruleName -ErrorAction Stop
+            if ($rule.Enabled -eq 'True' -and $rule.Direction -eq 'Inbound' -and $rule.Action -eq 'Allow') {
+                Write-Host "✅ Rule '$ruleName' successfully created and verified."
+            } else {
+                Write-Warning "⚠️ Rule '$ruleName' was created but doesn't match expected parameters."
+            }
+        } catch {
+            Write-Error "❌ Failed to create or verify firewall rule: $_"
+        }
+    } else {
+        Write-Host "✅ SSH on port 22 is already allowed through the firewall. No action needed."
+    }
+}
+
 function Get-IanaTimeZone {
     $win_tz = (Get-TimeZone).Id
     $iana_tz = $null
@@ -1141,6 +1223,50 @@ function Test-Is64Bit {
     } else {
         Write-Host "Your computer is 32-bit."
     }
+}
+
+function New-DesktopShortcut {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [string]$TargetPath,
+
+        [Parameter()]
+        [string]$ShortcutName = $(Split-Path $TargetPath -Leaf).Replace('.exe','') + ".lnk",
+
+        [Parameter()]
+        [string]$Description = "",
+
+        [Parameter()]
+        [int]$WindowStyle = 3,  # ✅ 3 = Maximized by default
+
+        [Parameter()]
+        [bool]$AllUsers = $true  # ✅ Default to All Users
+    )
+
+    if (-not (Test-Path $TargetPath)) {
+        Write-Error "❌ Target path does not exist: $TargetPath"
+        return
+    }
+
+    $desktopPath = if ($AllUsers) {
+        "$env:PUBLIC\Desktop"
+    } else {
+        [Environment]::GetFolderPath("Desktop")
+    }
+
+    $shortcutPath = Join-Path $desktopPath $ShortcutName
+
+    $shell = New-Object -ComObject WScript.Shell
+    $shortcut = $shell.CreateShortcut($shortcutPath)
+    $shortcut.TargetPath = $TargetPath
+    $shortcut.WorkingDirectory = Split-Path $TargetPath
+    $shortcut.WindowStyle = $WindowStyle
+    $shortcut.Description = $Description
+    $shortcut.IconLocation = "$TargetPath, 0"
+    $shortcut.Save()
+
+    Write-Host "✅ Shortcut created at: $shortcutPath"
 }
 
 function Install-PowerShell-7 {
