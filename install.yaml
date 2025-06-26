@@ -4,6 +4,15 @@ install:
     - VS code
     - 7zip
     - voidtools everything
+    - WinSCP
+    - MobaXTerm
+    - cherrytree
+    - Go
+    - Notepad++
+    - SQLite Browser
+    - Miniconda
+    - Java
+    - SQL Developer
   logs:
     global log directory: |
       C:\logs
@@ -20,3 +29,5 @@ install:
         miniconda
       SQL Developer:
         sql-developer
+      Nirsoft:
+        nirsoft

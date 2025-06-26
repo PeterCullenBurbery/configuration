@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	yzip "github.com/yeka/zip"
 	"gopkg.in/yaml.v3"
 )
 
@@ -84,9 +85,13 @@ func main() {
 		switch {
 		case strings.EqualFold(label, "SQL Developer"):
 			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
+		
+		case strings.EqualFold(label, "Nirsoft"):
+			handleNirsoft(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
 
 		case strings.EqualFold(funcName, "Install-CherryTree"):
 			appKey := "cherry tree"
+
 			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
 			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 			timestamp := formatTimestamp()
@@ -371,11 +376,135 @@ func runPowerShellScript(filename, content string, logFile *os.File) {
 	if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
 		log.Fatalf("❌ Failed to write script %s: %v", filename, err)
 	}
-	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", filename)
+
+	cmd := exec.Command(
+		"powershell",
+		"-NoProfile",
+		"-ExecutionPolicy", "Bypass",
+		"-File", filename,
+	)
+
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
+
 	if err := cmd.Run(); err != nil {
 		log.Fatalf("❌ Failed to run %s: %v", filename, err)
 	}
+
 	log.Printf("✅ Finished: %s", filename)
+}
+
+func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}, modulePath string) {
+	appKey := "nirsoft"
+
+	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
+	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
+	timestamp := formatTimestamp()
+
+	logDir := filepath.Join(globalLogDir, subLog)
+	logFileName := fmt.Sprintf("nirsoft_%s.log", timestamp)
+	nirsoftLogPath := filepath.Join(logDir, logFileName)
+	nirsoftDownloadDir := filepath.Join(globalDownloadDir, subDownload)
+
+	_ = os.MkdirAll(logDir, os.ModePerm)
+	_ = os.MkdirAll(nirsoftDownloadDir, os.ModePerm)
+
+	zipName := "nirsoft_package_enc_1.30.19.zip"
+	zipPath := filepath.Join(nirsoftDownloadDir, zipName)
+	extractDir := filepath.Join(nirsoftDownloadDir, "nirsoft")
+	installerURL := "https://download.nirsoft.net/nirsoft_package_enc_1.30.19.zip"
+	zipPassword := "nirsoft9876$"
+	authUsername := "nirsoft"
+	authPassword := "nirsoft9876$"
+
+	if !fileExists(zipPath) {
+		log.Printf("🌐 Downloading Nirsoft from: %s", installerURL)
+		if err := downloadFileWithBasicAuth(zipPath, installerURL, authUsername, authPassword); err != nil {
+			log.Fatalf("❌ Download failed: %v", err)
+		}
+		log.Println("✅ Downloaded Nirsoft ZIP.")
+	} else {
+		log.Println("📁 Nirsoft ZIP already present.")
+	}
+
+	log.Printf("📦 Extracting Nirsoft to: %s", extractDir)
+	if err := unzipWithPassword(zipPath, extractDir, zipPassword); err != nil {
+		log.Fatalf("❌ Extraction failed: %v", err)
+	}
+	log.Println("✅ Nirsoft extracted.")
+	log.Printf("📝 Nirsoft log path: %s", nirsoftLogPath)
+}
+
+func unzipWithPassword(src, dest, password string) error {
+	r, err := yzip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		if f.IsEncrypted() {
+			f.SetPassword(password)
+		}
+
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+
+		path := filepath.Join(dest, f.Name)
+
+		if f.FileInfo().IsDir() {
+			_ = os.MkdirAll(path, os.ModePerm)
+			rc.Close()
+			continue
+		}
+
+		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+			rc.Close()
+			return err
+		}
+
+		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			rc.Close()
+			return err
+		}
+
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func downloadFileWithBasicAuth(dest, url, username, password string) error {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(username, password)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d: failed to download %s", resp.StatusCode, url)
+	}
+
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
 }

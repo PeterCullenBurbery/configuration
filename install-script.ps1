@@ -135,6 +135,25 @@ if ((Test-Path $enable_ssh_exe) -and (Test-Path $config_path) -and (Test-Path $p
     Write-Warning "⚠️ Missing enable-ssh.exe, config.yaml, or PowerShell module."
 }
 
+# --- Step 8: Install VS Code extensions from YAML ---
+
+$vs_code_yaml_path = Join-Path $base_path "vs-code-extensions.yaml"
+$install_extensions_exe = Join-Path $base_path "go-projects\install-vs-code-extensions\install-vs-code-extensions.exe"
+
+if ((Test-Path $install_extensions_exe) -and (Test-Path $vs_code_yaml_path)) {
+    $start = Get-Date
+    Write-Host "🧩 Installing VS Code extensions from YAML..."
+
+    Start-Process -FilePath $install_extensions_exe `
+        -ArgumentList "--yaml", "`"$vs_code_yaml_path`"" `
+        -Wait
+
+    $end = Get-Date
+    Write-Host "✅ VS Code extensions installed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
+} else {
+    Write-Warning "⚠️ Missing install-vs-code-extensions.exe or vs-code-extensions.yaml"
+}
+
 # --- Print total execution time ---
 $global_end = Get-Date
 $total_seconds = [math]::Round(($global_end - $global_start).TotalSeconds, 2)
