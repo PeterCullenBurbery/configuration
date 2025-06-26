@@ -4,7 +4,6 @@ install:
     - VS code
     - 7zip
     - voidtools everything
-    - SQL Developer
     - Python
     - Go
     - Java
