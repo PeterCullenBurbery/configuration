@@ -5,9 +5,9 @@ install:
     - 7zip
     - voidtools everything
     - SQL Developer
-    - WinSCP
-    - cherrytree
-    - Notepad++
+    - Python
+    - Go
+    - Java
   logs:
     global log directory: |
       C:\logs
