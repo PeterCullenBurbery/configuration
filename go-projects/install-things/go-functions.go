@@ -12,8 +12,6 @@ import (
 
 // --- Helper functions ---
 
-
-
 func getCaseInsensitiveMap(m map[string]interface{}, key string) map[string]interface{} {
 	for k, v := range m {
 		if strings.EqualFold(k, key) {

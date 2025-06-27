@@ -1,0 +1,226 @@
+Create a Go program that unzips C:\Users\Administrator\Desktop\GitHub-repositories\configuration\host\nirsoft_package_enc_1.30.19.zip. Where to unzip it to? Parse the
+
+yaml file C:\Users\Administrator\Desktop\GitHub-repositories\configuration\install.yaml
+
+install:
+  programs to install:
+    - Powershell 7
+    - VS code
+    - 7zip
+    - voidtools everything
+    - Java
+    - Nirsoft
+  logs:
+    global log directory: |
+      C:\logs
+    per app log directories:
+      cherry tree: |
+        cherry-tree
+  downloads:
+    global download directory: |
+      C:\downloads
+    per app download directories:
+      cherry tree: |
+        cherry-tree
+      Python:
+        miniconda
+      SQL Developer:
+        sql-developer
+      Nirsoft:
+        nirsoft
+
+For now, do not unzip. Just print where you would extract to.
+
+gofunctions "github.com/PeterCullenBurbery/go-functions"
+
+package gofunctions
+
+import (
+	"strings"
+)
+
+// GetCaseInsensitiveMap searches for a key in the map (case-insensitively) and returns its value as a map[string]interface{}.
+// Returns nil if the key is not found or the value is not a map.
+func GetCaseInsensitiveMap(m map[string]interface{}, key string) map[string]interface{} {
+	for k, v := range m {
+		if strings.EqualFold(k, key) {
+			if result, ok := v.(map[string]interface{}); ok {
+				return result
+			}
+		}
+	}
+	return nil
+}
+
+// GetCaseInsensitiveList searches for a key in the map (case-insensitively) and returns its value as a []string.
+// Only string elements are included in the returned slice.
+// Returns nil if the key is not found or the value is not a list.
+func GetCaseInsensitiveList(m map[string]interface{}, key string) []string {
+	for k, v := range m {
+		if strings.EqualFold(k, key) {
+			raw, ok := v.([]interface{})
+			if !ok {
+				return nil
+			}
+			var result []string
+			for _, val := range raw {
+				if s, ok := val.(string); ok {
+					result = append(result, s)
+				}
+			}
+			return result
+		}
+	}
+	return nil
+}
+
+// GetCaseInsensitiveString searches for a key in the map (case-insensitively) and returns its value as a string.
+// Returns an empty string if the key is not found or the value is not a string.
+func GetCaseInsensitiveString(m map[string]interface{}, key string) string {
+	for k, v := range m {
+		if strings.EqualFold(k, key) {
+			if str, ok := v.(string); ok {
+				return str
+			}
+		}
+	}
+	return ""
+}
+
+// GetNestedString attempts to retrieve a string value for the given key from the map.
+// First, it tries to get the string directly using GetCaseInsensitiveString.
+// If not found, it then checks if the key maps to a nested map and returns the first string value from that map.
+// Returns an empty string if no suitable value is found.
+func GetNestedString(m map[string]interface{}, key string) string {
+	if val := GetCaseInsensitiveString(m, key); val != "" {
+		return val
+	}
+	if sub := GetCaseInsensitiveMap(m, key); sub != nil {
+		for _, v := range sub {
+			if s, ok := v.(string); ok {
+				return s
+			}
+		}
+	}
+	return ""
+}
+
+// GetNestedMap is a convenience wrapper that retrieves a nested map for a given key using case-insensitive matching.
+// Returns nil if the key is not found or the value is not a map.
+func GetNestedMap(m map[string]interface{}, key string) map[string]interface{} {
+	return GetCaseInsensitiveMap(m, key)
+}
+
+================================
+
+package gofunctions
+
+import (
+	"bytes"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+)
+
+// DateTimeStamp returns a timestamp string formatted via a temporary Java program.
+// It supports optional overrides for javac/java paths.
+func DateTimeStamp(args ...string) (string, error) {
+	var javacCmd, javaCmd string
+
+	switch len(args) {
+	case 0:
+		// Default: look in PATH
+		var err error
+		javacCmd, err = exec.LookPath("javac")
+		if err != nil {
+			return "", fmt.Errorf("❌ 'javac' not found in PATH. Please ensure JDK is installed")
+		}
+		javaCmd, err = exec.LookPath("java")
+		if err != nil {
+			return "", fmt.Errorf("❌ 'java' not found in PATH. Please ensure JRE is installed")
+		}
+	case 2:
+		javacCmd = args[0]
+		javaCmd = args[1]
+	default:
+		return "", fmt.Errorf("❌ DateTimeStamp() expects 0 or 2 arguments (javacPath, javaPath)")
+	}
+
+	tempDir, err := os.MkdirTemp("", "date_time_stamp")
+	if err != nil {
+		return "", fmt.Errorf("❌ Failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	const javaFileName = "date_time_stamp.java"
+	const className = "date_time_stamp"
+	javaFilePath := filepath.Join(tempDir, javaFileName)
+
+	javaCode := `import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
+
+public class date_time_stamp {
+    public static void main(String[] args) {
+        ZonedDateTime now = ZonedDateTime.now();
+        ZoneId tz = now.getZone();
+        String date_part = now.format(DateTimeFormatter.ofPattern("yyyy-0MM-0dd"));
+        String time_part = now.format(DateTimeFormatter.ofPattern("0HH.0mm.0ss.nnnnnnn"));
+        WeekFields wf = WeekFields.ISO;
+        int week = now.get(wf.weekOfWeekBasedYear());
+        int weekday = now.get(wf.dayOfWeek());
+        int iso_year = now.get(wf.weekBasedYear());
+        int day_of_year = now.getDayOfYear();
+        String output = String.format(
+            "%s %s %04d-W%03d-%03d %04d-%03d",
+            date_part, time_part, iso_year, week, weekday, now.getYear(), day_of_year
+        );
+        output = output.replace(time_part, time_part + " " + tz);
+        System.out.println(output);
+    }
+}`
+
+	if err := os.WriteFile(javaFilePath, []byte(javaCode), 0644); err != nil {
+		return "", fmt.Errorf("❌ Failed to write Java file: %w", err)
+	}
+
+	// Compile
+	cmdCompile := exec.Command(javacCmd, javaFileName)
+	cmdCompile.Dir = tempDir
+	if err := cmdCompile.Run(); err != nil {
+		return "", fmt.Errorf("❌ Failed to compile Java file: %w", err)
+	}
+
+	// Run
+	cmdRun := exec.Command(javaCmd, className)
+	cmdRun.Dir = tempDir
+	var out bytes.Buffer
+	cmdRun.Stdout = &out
+	cmdRun.Stderr = &out
+	if err := cmdRun.Run(); err != nil {
+		return "", fmt.Errorf("❌ Failed to run Java class: %w\nOutput:\n%s", err, out.String())
+	}
+
+	// Trim any trailing newline or carriage return
+	return strings.TrimSpace(out.String()), nil
+}
+
+// SafeTimeStamp optionally replaces "/" with " slash " if mode == 1.
+func SafeTimeStamp(timestamp string, mode int) string {
+	if mode == 1 {
+		return strings.ReplaceAll(timestamp, "/", " slash ")
+	}
+	return timestamp
+}
+
+First, copy the zip to C:\downloads\nirsoft\SafeTimeStamp.
+
+Extract the zip to C:\downloads\nirsoft\SafeTimeStamp\SafeTimeStamp.
+
+There is a difference. SafeTimeStamps will be off by a couple of seconds. SafeTimeStamp when zip is copied. SafeTimeStamp when zip is extracted.
+
+zip the files up into C:\downloads\nirsoft\SafeTimeStamp\nirsoft_package_enc_1.30.19.zip. use the password "nirsoft9876$". there are 3 timestamps.
+
+extract the password protected zip to C:\downloads\nirsoft\SafeTimeStamp\safetimestamp. There are 4 timestamps.
