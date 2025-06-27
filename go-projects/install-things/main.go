@@ -164,12 +164,18 @@ func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, 
 	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 
 	timestamp := formatTimestamp()
-	logDir := filepath.Join(globalLogDir, subLog)
-	logFileName := fmt.Sprintf("sqldeveloper_%s.log", timestamp)
-	sqlLogPath := filepath.Join(logDir, logFileName)
 	sqlDownloadDir := filepath.Join(globalDownloadDir, subDownload)
 
-	_ = os.MkdirAll(logDir, os.ModePerm)
+	// Optional log path
+	var sqlLogPath string
+	if subLog != "" && globalLogDir != "" {
+		logDir := filepath.Join(globalLogDir, subLog)
+		if err := os.MkdirAll(logDir, os.ModePerm); err == nil {
+			logFileName := fmt.Sprintf("sqldeveloper_%s.log", timestamp)
+			sqlLogPath = filepath.Join(logDir, logFileName)
+		}
+	}
+
 	_ = os.MkdirAll(sqlDownloadDir, os.ModePerm)
 
 	zipName := "sqldeveloper-24.3.1.347.1826-x64.zip"
@@ -192,7 +198,10 @@ func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, 
 		log.Fatalf("❌ Extraction failed: %v", err)
 	}
 	log.Println("✅ SQL Developer extracted.")
-	log.Printf("📝 SQL Developer log path: %s", sqlLogPath)
+
+	if sqlLogPath != "" {
+		log.Printf("📝 SQL Developer log path: %s", sqlLogPath)
+	}
 
 	// Step: Create shortcut using the module's New-DesktopShortcut
 	exePath := filepath.Join(extractDir, "sqldeveloper", "sqldeveloper.exe")
