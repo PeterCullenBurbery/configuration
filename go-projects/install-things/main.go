@@ -1,17 +1,20 @@
 package main
 
 import (
+	"archive/zip"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
-	yzip "github.com/yeka/zip"
 	"gopkg.in/yaml.v3"
+	"github.com/PeterCullenBurbery/go-functions"
 )
 
 func main() {
@@ -34,13 +37,11 @@ func main() {
 	defer logFile.Close()
 	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
-	// Step 1: Run Install-Choco first
 	log.Println("🍫 Installing Chocolatey using Install-Choco...")
 	psContent := fmt.Sprintf("Import-Module '%s'\nInstall-Choco\n", *modulePath)
 	runPowerShellScript("install-choco.ps1", psContent, logFile)
 	log.Println("✅ Chocolatey installation complete.")
 
-	// Step 2: Load YAML
 	var raw map[string]interface{}
 	data, err := os.ReadFile(*installPath)
 	if err != nil {
@@ -82,13 +83,12 @@ func main() {
 		switch {
 		case strings.EqualFold(label, "SQL Developer"):
 			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
-		
+
 		case strings.EqualFold(label, "Nirsoft"):
 			handleNirsoft(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
 
 		case strings.EqualFold(funcName, "Install-CherryTree"):
 			appKey := "cherry tree"
-
 			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
 			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
 			timestamp := formatTimestamp()
@@ -217,83 +217,30 @@ New-DesktopShortcut -TargetPath '%s' -Description 'Oracle SQL Developer'
 	log.Println("✅ SQL Developer shortcut created on desktop.")
 }
 
-func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}, modulePath string) {
-	appKey := "nirsoft"
-
-	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
-	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-	timestamp := formatTimestamp()
-
-	logDir := filepath.Join(globalLogDir, subLog)
-	logFileName := fmt.Sprintf("nirsoft_%s.log", timestamp)
-	nirsoftLogPath := filepath.Join(logDir, logFileName)
-	nirsoftDownloadDir := filepath.Join(globalDownloadDir, subDownload)
-
-	_ = os.MkdirAll(logDir, os.ModePerm)
-	_ = os.MkdirAll(nirsoftDownloadDir, os.ModePerm)
-
-	zipName := "nirsoft_package_enc_1.30.19.zip"
-	zipPath := filepath.Join(nirsoftDownloadDir, zipName)
-	extractDir := filepath.Join(nirsoftDownloadDir, "nirsoft")
-	installerURL := "https://download.nirsoft.net/nirsoft_package_enc_1.30.19.zip"
-	zipPassword := "nirsoft9876$"
-	authUsername := "nirsoft"
-	authPassword := "nirsoft9876$"
-
-	if !fileExists(zipPath) {
-		log.Printf("🌐 Downloading Nirsoft from: %s", installerURL)
-		if err := downloadFileWithBasicAuth(zipPath, installerURL, authUsername, authPassword); err != nil {
-			log.Fatalf("❌ Download failed: %v", err)
-		}
-		log.Println("✅ Downloaded Nirsoft ZIP.")
-	} else {
-		log.Println("📁 Nirsoft ZIP already present.")
-	}
-
-	log.Printf("📦 Extracting Nirsoft to: %s", extractDir)
-	if err := unzipWithPassword(zipPath, extractDir, zipPassword); err != nil {
-		log.Fatalf("❌ Extraction failed: %v", err)
-	}
-	log.Println("✅ Nirsoft extracted.")
-	log.Printf("📝 Nirsoft log path: %s", nirsoftLogPath)
-}
-
-func unzipWithPassword(src, dest, password string) error {
-	r, err := yzip.OpenReader(src)
+func unzip(src string, dest string) error {
+	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err
 	}
 	defer r.Close()
 
 	for _, f := range r.File {
-		if f.IsEncrypted() {
-			f.SetPassword(password)
+		path := filepath.Join(dest, f.Name)
+		if f.FileInfo().IsDir() {
+			_ = os.MkdirAll(path, os.ModePerm)
+			continue
 		}
-
+		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+			return err
+		}
+		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
 		rc, err := f.Open()
 		if err != nil {
 			return err
 		}
-
-		path := filepath.Join(dest, f.Name)
-
-		if f.FileInfo().IsDir() {
-			_ = os.MkdirAll(path, os.ModePerm)
-			rc.Close()
-			continue
-		}
-
-		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
-			rc.Close()
-			return err
-		}
-
-		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			rc.Close()
-			return err
-		}
-
 		_, err = io.Copy(outFile, rc)
 		outFile.Close()
 		rc.Close()
@@ -303,3 +250,206 @@ func unzipWithPassword(src, dest, password string) error {
 	}
 	return nil
 }
+
+func toInstallFunctionName(label string) string {
+	l := strings.ToLower(strings.NewReplacer(" ", "", "-", "", "+", "").Replace(label))
+	switch l {
+	case "powershell7":
+		return "Install-PowerShell-7"
+	case "vscode":
+		return "Install-VSCode"
+	case "7zip":
+		return "Install-7Zip"
+	case "voidtoolseverything":
+		return "Install-Voidtools-Everything"
+	case "winscp":
+		return "Install-WinSCP"
+	case "mobaxterm":
+		return "Install-MobaXterm"
+	case "choco", "chocolatey":
+		return "Install-Choco"
+	case "cherrytree":
+		return "Install-CherryTree"
+	case "go":
+		return "Install-Go"
+	case "notepadpp", "notepadplusplus", "notepad":
+		return "Install-NotepadPP"
+	case "sqlitebrowser", "sqlite", "sqlitebrowserforsqlite", "dbbrowser":
+		return "Install-SQLiteBrowser"
+	case "python", "miniconda":
+		return "Install-Miniconda"
+	case "java":
+		return "Install-Java"
+	default:
+		return "Install-" + strings.Title(l)
+	}
+}
+
+func getCaseInsensitiveMap(m map[string]interface{}, key string) map[string]interface{} {
+	for k, v := range m {
+		if strings.EqualFold(k, key) {
+			if result, ok := v.(map[string]interface{}); ok {
+				return result
+			}
+		}
+	}
+	return nil
+}
+
+func getCaseInsensitiveList(m map[string]interface{}, key string) []string {
+	for k, v := range m {
+		if strings.EqualFold(k, key) {
+			raw, ok := v.([]interface{})
+			if !ok {
+				return nil
+			}
+			var result []string
+			for _, val := range raw {
+				if s, ok := val.(string); ok {
+					result = append(result, s)
+				}
+			}
+			return result
+		}
+	}
+	return nil
+}
+
+func getCaseInsensitiveString(m map[string]interface{}, key string) string {
+	for k, v := range m {
+		if strings.EqualFold(k, key) {
+			if str, ok := v.(string); ok {
+				return str
+			}
+		}
+	}
+	return ""
+}
+
+func getNestedString(m map[string]interface{}, key string) string {
+	if val := getCaseInsensitiveString(m, key); val != "" {
+		return val
+	}
+	if sub := getCaseInsensitiveMap(m, key); sub != nil {
+		for _, v := range sub {
+			if s, ok := v.(string); ok {
+				return s
+			}
+		}
+	}
+	return ""
+}
+
+func getNestedMap(m map[string]interface{}, key string) map[string]interface{} {
+	return getCaseInsensitiveMap(m, key)
+}
+
+func downloadFile(dest, url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
+func formatTimestamp() string {
+	return time.Now().Format("20060102_150405")
+}
+
+// New helper to run each individual script:
+func runPowerShellScript(filename, content string, logFile *os.File) {
+	if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
+		log.Fatalf("❌ Failed to write script %s: %v", filename, err)
+	}
+	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", filename)
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	if err := cmd.Run(); err != nil {
+		log.Fatalf("❌ Failed to run %s: %v", filename, err)
+	}
+	log.Printf("✅ Finished: %s", filename)
+}
+
+func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}, modulePath string) {
+	appKey := "nirsoft"
+
+	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
+	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
+
+	// Explicit javac and java paths
+	javac := `C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot\bin\javac.exe`
+	java := `C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot\bin\java.exe`
+
+	// Generate safe timestamp for download phase
+	rawTimestampDownload, err := gofunctions.DateTimeStamp(javac, java)
+	if err != nil {
+		log.Fatalf("❌ Failed to generate download timestamp: %v", err)
+	}
+	downloadTimestamp := gofunctions.SafeTimeStamp(rawTimestampDownload, 1)
+
+	// Directories for download
+	nirsoftDownloadDir := filepath.Join(globalDownloadDir, subDownload, downloadTimestamp)
+
+	// ZIP setup
+	zipName := "nirsoft_package_enc_1.30.19.zip"
+	zipPath := filepath.Join(nirsoftDownloadDir, zipName)
+	zipURL := "https://github.com/PeterCullenBurbery/configuration/raw/main/host/" + zipName
+
+	// Extraction timestamp
+	rawTimestampExtract, err := gofunctions.DateTimeStamp(javac, java)
+	if err != nil {
+		log.Fatalf("❌ Failed to generate extraction timestamp: %v", err)
+	}
+	extractTimestamp := gofunctions.SafeTimeStamp(rawTimestampExtract, 1)
+	extractDir := filepath.Join(nirsoftDownloadDir, extractTimestamp)
+
+	// Optional logging setup
+	var logPath string
+	if subLog != "" && globalLogDir != "" {
+		logPath = filepath.Join(globalLogDir, subLog)
+		_ = os.MkdirAll(logPath, os.ModePerm)
+		logFileName := fmt.Sprintf("nirsoft_%s.log", downloadTimestamp)
+		logPath = filepath.Join(logPath, logFileName)
+	}
+
+	// Ensure download folder
+	_ = os.MkdirAll(nirsoftDownloadDir, os.ModePerm)
+	log.Printf("📁 Creating download folder:\n↳ %s", nirsoftDownloadDir)
+
+	// Download ZIP
+	if !fileExists(zipPath) {
+		log.Printf("⬇️ Downloading: %s", zipURL)
+		if err := downloadFile(zipPath, zipURL); err != nil {
+			log.Fatalf("❌ Failed to download Nirsoft ZIP: %v", err)
+		}
+		log.Printf("✅ ZIP downloaded to: %s", zipPath)
+	} else {
+		log.Printf("📁 ZIP already exists: %s", zipPath)
+	}
+
+	// Extract ZIP
+	log.Printf("📁 Creating extract folder:\n↳ %s", extractDir)
+	if err := unzip(zipPath, extractDir); err != nil {
+		log.Fatalf("❌ Failed to extract ZIP: %v", err)
+	}
+	log.Println("✅ Extraction complete!")
+
+	// Final output
+	log.Printf("📦 Extracted Nirsoft package to:\n↳ %s", extractDir)
+	if logPath != "" {
+		log.Printf("📝 Nirsoft log path:\n↳ %s", logPath)
+	}
+}
+

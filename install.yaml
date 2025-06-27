@@ -5,6 +5,7 @@ install:
     - 7zip
     - voidtools everything
     - Java
+    - Nirsoft
   logs:
     global log directory: |
       C:\logs

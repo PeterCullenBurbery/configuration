@@ -20,7 +20,6 @@ func main() {
 		return
 	}
 	downloadFolder := strings.TrimSpace(gofunctions.SafeTimeStamp(rawDownloadStamp, 1))
-
 	baseDir := `C:\Users\Administrator\Desktop\GitHub-repositories\configuration\go-projects\download-zip\download`
 	fullDownloadPath := filepath.Join(baseDir, downloadFolder)
 
@@ -41,19 +40,19 @@ func main() {
 	fmt.Println("⬇️ Downloading:", url)
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("❌ Failed to download:", err)
+		fmt.Println("❌ Failed to download ZIP:", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	outFile, err := os.Create(zipPath)
 	if err != nil {
-		fmt.Println("❌ Failed to create zip file:", err)
+		fmt.Println("❌ Failed to create ZIP file on disk:", err)
 		return
 	}
 	if _, err := io.Copy(outFile, resp.Body); err != nil {
 		outFile.Close()
-		fmt.Println("❌ Failed to write zip file:", err)
+		fmt.Println("❌ Failed to write ZIP content to file:", err)
 		return
 	}
 	outFile.Close()
@@ -73,19 +72,19 @@ func main() {
 	fmt.Println("🔢 Length:", len(fullExtractPath))
 
 	if err := os.MkdirAll(fullExtractPath, os.ModePerm); err != nil {
-		fmt.Println("❌ Failed to create extraction folder:", err)
+		fmt.Println("❌ Failed to create extract folder:", err)
 		return
 	}
 
 	// Step 4: Extract ZIP
 	fmt.Println("📦 Extracting ZIP to:", fullExtractPath)
 	if err := unzip(zipPath, fullExtractPath); err != nil {
-		fmt.Println("❌ Failed to extract zip:", err)
+		fmt.Println("❌ Failed to extract ZIP archive:", err)
 		return
 	}
-
 	fmt.Println("✅ Extraction complete!")
 }
+
 
 func unzip(src, dest string) error {
 	r, err := zip.OpenReader(src)
