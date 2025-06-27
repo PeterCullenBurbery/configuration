@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
+	gofunctions "github.com/PeterCullenBurbery/go-functions"
 	"gopkg.in/yaml.v3"
-	"github.com/PeterCullenBurbery/go-functions"
 )
 
 func main() {
@@ -399,10 +399,8 @@ func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globa
 	}
 	downloadTimestamp := gofunctions.SafeTimeStamp(rawTimestampDownload, 1)
 
-	// Directories for download
+	// Paths
 	nirsoftDownloadDir := filepath.Join(globalDownloadDir, subDownload, downloadTimestamp)
-
-	// ZIP setup
 	zipName := "nirsoft_package_enc_1.30.19.zip"
 	zipPath := filepath.Join(nirsoftDownloadDir, zipName)
 	zipURL := "https://github.com/PeterCullenBurbery/configuration/raw/main/host/" + zipName
@@ -415,20 +413,26 @@ func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globa
 	extractTimestamp := gofunctions.SafeTimeStamp(rawTimestampExtract, 1)
 	extractDir := filepath.Join(nirsoftDownloadDir, extractTimestamp)
 
-	// Optional logging setup
+	// Optional log path
 	var logPath string
 	if subLog != "" && globalLogDir != "" {
-		logPath = filepath.Join(globalLogDir, subLog)
-		_ = os.MkdirAll(logPath, os.ModePerm)
-		logFileName := fmt.Sprintf("nirsoft_%s.log", downloadTimestamp)
-		logPath = filepath.Join(logPath, logFileName)
+		logDir := filepath.Join(globalLogDir, subLog)
+		if err := os.MkdirAll(logDir, os.ModePerm); err == nil {
+			logFileName := fmt.Sprintf("nirsoft_%s.log", downloadTimestamp)
+			logPath = filepath.Join(logDir, logFileName)
+		}
 	}
 
-	// Ensure download folder
-	_ = os.MkdirAll(nirsoftDownloadDir, os.ModePerm)
+	// Create download folder
+	if err := os.MkdirAll(nirsoftDownloadDir, os.ModePerm); err != nil {
+		log.Fatalf("❌ Failed to create download directory: %v", err)
+	}
 	log.Printf("📁 Creating download folder:\n↳ %s", nirsoftDownloadDir)
 
-	// Download ZIP
+	// Defender exclusion on download dir
+	excludeFromDefender(nirsoftDownloadDir)
+
+	// Download
 	if !fileExists(zipPath) {
 		log.Printf("⬇️ Downloading: %s", zipURL)
 		if err := downloadFile(zipPath, zipURL); err != nil {
@@ -439,17 +443,32 @@ func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globa
 		log.Printf("📁 ZIP already exists: %s", zipPath)
 	}
 
-	// Extract ZIP
+	// Extract
+	if err := os.MkdirAll(extractDir, os.ModePerm); err != nil {
+		log.Fatalf("❌ Failed to create extract directory: %v", err)
+	}
 	log.Printf("📁 Creating extract folder:\n↳ %s", extractDir)
+
 	if err := unzip(zipPath, extractDir); err != nil {
 		log.Fatalf("❌ Failed to extract ZIP: %v", err)
 	}
 	log.Println("✅ Extraction complete!")
 
-	// Final output
+	// Summary
 	log.Printf("📦 Extracted Nirsoft package to:\n↳ %s", extractDir)
 	if logPath != "" {
 		log.Printf("📝 Nirsoft log path:\n↳ %s", logPath)
 	}
 }
 
+// Exclude directory from Defender
+func excludeFromDefender(path string) {
+	cmd := exec.Command("powershell", "-Command", fmt.Sprintf(`Add-MpPreference -ExclusionPath "%s"`, path))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		log.Printf("⚠️ Failed to exclude from Defender: %s\n↳ %v", path, err)
+	} else {
+		log.Printf("🛡️ Added Defender exclusion:\n↳ %s", path)
+	}
+}
