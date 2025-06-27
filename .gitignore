@@ -1,8 +1,6 @@
-# Ignore everything in host/
-host/*
+# Ignore everything recursively in host/
+host/**
 
-# But keep these folders and files
-!host/non-password-protected/
+# Only allow these exact files (not their folders)
 !host/non-password-protected/nirsoft_package_enc_1.30.19.zip
-!host/password-protected/
 !host/password-protected/nirsoft_package_enc_1.30.19.zip
