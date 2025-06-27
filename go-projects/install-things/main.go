@@ -7,11 +7,9 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
-	gofunctions "github.com/PeterCullenBurbery/go-functions"
 	"gopkg.in/yaml.v3"
 )
 
@@ -86,65 +84,11 @@ func main() {
 			handleNirsoft(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
 
 		case strings.EqualFold(funcName, "Install-CherryTree"):
-			appKey := "cherry tree"
-			subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
-			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-			timestamp := formatTimestamp()
+			handleCherryTree(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
 
-			logDir := filepath.Join(globalLogDir, subLog)
-			logFileName := fmt.Sprintf("cherrytree_%s.log", timestamp)
-			cherryLogPath := filepath.Join(logDir, logFileName)
-			cherryInstallPath := filepath.Join(globalDownloadDir, subDownload)
-
-			_ = os.MkdirAll(logDir, os.ModePerm)
-			_ = os.MkdirAll(cherryInstallPath, os.ModePerm)
-
-			installerPath := filepath.Join(cherryInstallPath, "cherrytree_1.5.0.0_win64_setup.exe")
-			installerURL := "https://www.giuspen.net/software/cherrytree_1.5.0.0_win64_setup.exe"
-
-			if !fileExists(installerPath) {
-				log.Printf("🌐 Downloading CherryTree from: %s", installerURL)
-				if err := downloadFile(installerPath, installerURL); err != nil {
-					log.Fatalf("❌ Download failed: %v", err)
-				}
-				log.Println("✅ Downloaded CherryTree.")
-			} else {
-				log.Println("📁 CherryTree installer already present.")
-			}
-
-			log.Printf("📝 CherryTree log path: %s", cherryLogPath)
-			psContent := fmt.Sprintf("Import-Module '%s'\nInstall-CherryTree -log '%s' -installPath '%s'\n", *modulePath, cherryLogPath, cherryInstallPath)
-			runPowerShellScript("install-cherrytree.ps1", psContent, logFile)
-
+			// Miniconda does not take logs.
 		case strings.EqualFold(funcName, "Install-Miniconda"):
-			appKey := "python"
-			subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-			minicondaInstallPath := filepath.Join(globalDownloadDir, subDownload)
-			installerPath := filepath.Join(minicondaInstallPath, "Miniconda3-latest-Windows-x86_64.exe")
-			installerURL := "https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
-
-			_ = os.MkdirAll(minicondaInstallPath, os.ModePerm)
-
-			if !fileExists(installerPath) {
-				log.Printf("🌐 Downloading Miniconda from: %s", installerURL)
-				if err := downloadFile(installerPath, installerURL); err != nil {
-					log.Fatalf("❌ Download failed: %v", err)
-				}
-				log.Println("✅ Downloaded Miniconda.")
-			} else {
-				log.Println("📁 Miniconda installer already present.")
-			}
-
-			psContent := fmt.Sprintf(`Import-Module '%s'
-Install-Miniconda -InstallerPath '%s'
-
-# Add Python and Pip to PATH
-Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\python.exe'
-Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\Scripts\pip3.exe'
-`, *modulePath, installerPath)
-
-			runPowerShellScript("install-miniconda.ps1", psContent, logFile)
-
+			handleMiniconda(globalDownloadDir, perAppDownloads, *modulePath)
 		default:
 			scriptName := fmt.Sprintf("install-%s.ps1", strings.ToLower(strings.ReplaceAll(label, " ", "-")))
 			psContent := fmt.Sprintf("Import-Module '%s'\n%s\n", *modulePath, funcName)
@@ -156,73 +100,6 @@ Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\Scripts\pip3.exe'
 }
 
 // --- Helper functions ---
-
-func handleSQLDeveloper(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}, modulePath string) {
-	appKey := "sql developer"
-
-	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
-	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-
-	timestamp := formatTimestamp()
-	sqlDownloadDir := filepath.Join(globalDownloadDir, subDownload)
-
-	// Optional log path
-	var sqlLogPath string
-	if subLog != "" && globalLogDir != "" {
-		logDir := filepath.Join(globalLogDir, subLog)
-		if err := os.MkdirAll(logDir, os.ModePerm); err == nil {
-			logFileName := fmt.Sprintf("sqldeveloper_%s.log", timestamp)
-			sqlLogPath = filepath.Join(logDir, logFileName)
-		}
-	}
-
-	_ = os.MkdirAll(sqlDownloadDir, os.ModePerm)
-
-	zipName := "sqldeveloper-24.3.1.347.1826-x64.zip"
-	zipPath := filepath.Join(sqlDownloadDir, zipName)
-	extractDir := filepath.Join(sqlDownloadDir, strings.TrimSuffix(zipName, filepath.Ext(zipName)))
-	installerURL := "https://download.oracle.com/otn_software/java/sqldeveloper/" + zipName
-
-	if !fileExists(zipPath) {
-		log.Printf("🌐 Downloading SQL Developer from: %s", installerURL)
-		if err := downloadFile(zipPath, installerURL); err != nil {
-			log.Fatalf("❌ Download failed: %v", err)
-		}
-		log.Println("✅ Downloaded SQL Developer.")
-	} else {
-		log.Println("📁 SQL Developer ZIP already present.")
-	}
-
-	log.Printf("📦 Extracting SQL Developer to: %s", extractDir)
-	if err := unzip(zipPath, extractDir); err != nil {
-		log.Fatalf("❌ Extraction failed: %v", err)
-	}
-	log.Println("✅ SQL Developer extracted.")
-
-	if sqlLogPath != "" {
-		log.Printf("📝 SQL Developer log path: %s", sqlLogPath)
-	}
-
-	// Step: Create shortcut using the module's New-DesktopShortcut
-	exePath := filepath.Join(extractDir, "sqldeveloper", "sqldeveloper.exe")
-	psContent := fmt.Sprintf(`Import-Module '%s'
-New-DesktopShortcut -TargetPath '%s' -Description 'Oracle SQL Developer'
-`, modulePath, exePath)
-
-	psScriptName := "create-sqldeveloper-shortcut.ps1"
-	if err := os.WriteFile(psScriptName, []byte(psContent), 0644); err != nil {
-		log.Fatalf("❌ Failed to write shortcut script: %v", err)
-	}
-
-	log.Println("📌 Creating SQL Developer desktop shortcut...")
-	cmd := exec.Command("powershell", "-ExecutionPolicy", "Bypass", "-File", psScriptName)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Fatalf("❌ Failed to create SQL Developer shortcut: %v", err)
-	}
-	log.Println("✅ SQL Developer shortcut created on desktop.")
-}
 
 func unzip(src string, dest string) error {
 	r, err := zip.OpenReader(src)
@@ -289,96 +166,5 @@ func toInstallFunctionName(label string) string {
 		return "Install-Java"
 	default:
 		return "Install-" + strings.Title(l)
-	}
-}
-
-func handleNirsoft(globalLogDir string, perAppLogs map[string]interface{}, globalDownloadDir string, perAppDownloads map[string]interface{}, modulePath string) {
-	appKey := "nirsoft"
-
-	subLog := strings.TrimSpace(getCaseInsensitiveString(perAppLogs, appKey))
-	subDownload := strings.TrimSpace(getCaseInsensitiveString(perAppDownloads, appKey))
-
-	// Explicit javac and java paths
-	javac := `C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot\bin\javac.exe`
-	java := `C:\Program Files\Eclipse Adoptium\jdk-21.0.6.7-hotspot\bin\java.exe`
-
-	// Generate safe timestamp for download phase
-	rawTimestampDownload, err := gofunctions.DateTimeStamp(javac, java)
-	if err != nil {
-		log.Fatalf("❌ Failed to generate download timestamp: %v", err)
-	}
-	downloadTimestamp := gofunctions.SafeTimeStamp(rawTimestampDownload, 1)
-
-	// Paths
-	nirsoftDownloadDir := filepath.Join(globalDownloadDir, subDownload, downloadTimestamp)
-	zipName := "nirsoft_package_enc_1.30.19.zip"
-	zipPath := filepath.Join(nirsoftDownloadDir, zipName)
-	zipURL := "https://github.com/PeterCullenBurbery/configuration/raw/main/host/" + zipName
-
-	// Extraction timestamp
-	rawTimestampExtract, err := gofunctions.DateTimeStamp(javac, java)
-	if err != nil {
-		log.Fatalf("❌ Failed to generate extraction timestamp: %v", err)
-	}
-	extractTimestamp := gofunctions.SafeTimeStamp(rawTimestampExtract, 1)
-	extractDir := filepath.Join(nirsoftDownloadDir, extractTimestamp)
-
-	// Optional log path
-	var logPath string
-	if subLog != "" && globalLogDir != "" {
-		logDir := filepath.Join(globalLogDir, subLog)
-		if err := os.MkdirAll(logDir, os.ModePerm); err == nil {
-			logFileName := fmt.Sprintf("nirsoft_%s.log", downloadTimestamp)
-			logPath = filepath.Join(logDir, logFileName)
-		}
-	}
-
-	// Create download folder
-	if err := os.MkdirAll(nirsoftDownloadDir, os.ModePerm); err != nil {
-		log.Fatalf("❌ Failed to create download directory: %v", err)
-	}
-	log.Printf("📁 Creating download folder:\n↳ %s", nirsoftDownloadDir)
-
-	// Defender exclusion on download dir
-	excludeFromDefender(nirsoftDownloadDir)
-
-	// Download
-	if !fileExists(zipPath) {
-		log.Printf("⬇️ Downloading: %s", zipURL)
-		if err := downloadFile(zipPath, zipURL); err != nil {
-			log.Fatalf("❌ Failed to download Nirsoft ZIP: %v", err)
-		}
-		log.Printf("✅ ZIP downloaded to: %s", zipPath)
-	} else {
-		log.Printf("📁 ZIP already exists: %s", zipPath)
-	}
-
-	// Extract
-	if err := os.MkdirAll(extractDir, os.ModePerm); err != nil {
-		log.Fatalf("❌ Failed to create extract directory: %v", err)
-	}
-	log.Printf("📁 Creating extract folder:\n↳ %s", extractDir)
-
-	if err := unzip(zipPath, extractDir); err != nil {
-		log.Fatalf("❌ Failed to extract ZIP: %v", err)
-	}
-	log.Println("✅ Extraction complete!")
-
-	// Summary
-	log.Printf("📦 Extracted Nirsoft package to:\n↳ %s", extractDir)
-	if logPath != "" {
-		log.Printf("📝 Nirsoft log path:\n↳ %s", logPath)
-	}
-}
-
-// Exclude directory from Defender
-func excludeFromDefender(path string) {
-	cmd := exec.Command("powershell", "-Command", fmt.Sprintf(`Add-MpPreference -ExclusionPath "%s"`, path))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		log.Printf("⚠️ Failed to exclude from Defender: %s\n↳ %v", path, err)
-	} else {
-		log.Printf("🛡️ Added Defender exclusion:\n↳ %s", path)
 	}
 }
