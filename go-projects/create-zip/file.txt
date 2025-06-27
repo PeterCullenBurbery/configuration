@@ -224,3 +224,15 @@ There is a difference. SafeTimeStamps will be off by a couple of seconds. SafeTi
 zip the files up into C:\downloads\nirsoft\SafeTimeStamp\nirsoft_package_enc_1.30.19.zip. use the password "nirsoft9876$". there are 3 timestamps.
 
 extract the password protected zip to C:\downloads\nirsoft\SafeTimeStamp\safetimestamp. There are 4 timestamps.
+
+========================================
+
+First, copy the zip to C:\downloads\nirsoft\SafeTimeStamp1.
+
+Extract the zip to C:\downloads\nirsoft\SafeTimeStamp1\SafeTimeStamp2.
+
+There is a difference. SafeTimeStamps will be off by a couple of seconds. SafeTimeStamp when zip is copied. SafeTimeStamp when zip is extracted.
+
+zip the files up into C:\downloads\nirsoft\SafeTimeStamp3\nirsoft_package_enc_1.30.19.zip. use the password "nirsoft9876$". there are 3 timestamps.
+
+extract the password protected zip to C:\downloads\nirsoft\SafeTimeStamp3\safetimestamp4. There are 4 timestamps.

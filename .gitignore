@@ -1,0 +1,6 @@
+# Ignore everything in host/
+host/*
+
+# But do not ignore these specific files
+!host/non-password-protected/nirsoft_package_enc_1.30.19.zip
+!host/password-protected/nirsoft_package_enc_1.30.19.zip

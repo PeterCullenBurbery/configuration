@@ -2,17 +2,17 @@ package main
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
+	"github.com/PeterCullenBurbery/go-functions"
+	yekazip "github.com/yeka/zip"
+	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"bytes"
-
-	"github.com/PeterCullenBurbery/go-functions"
-	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -29,58 +29,60 @@ func main() {
 		log.Fatalf("❌ Failed to parse YAML: %v", err)
 	}
 
-	// Extract relevant fields from YAML
+	// Parse relevant paths
 	install := gofunctions.GetCaseInsensitiveMap(root, "install")
 	downloads := gofunctions.GetCaseInsensitiveMap(install, "downloads")
 	globalDownloadDir := strings.TrimSpace(gofunctions.GetCaseInsensitiveString(downloads, "global download directory"))
 	perAppDownloads := gofunctions.GetCaseInsensitiveMap(downloads, "per app download directories")
 	subDownload := strings.TrimSpace(gofunctions.GetCaseInsensitiveString(perAppDownloads, "Nirsoft"))
+	nirsoftBase := filepath.Join(globalDownloadDir, subDownload)
 
-	// Add Defender exclusion for C:\downloads\nirsoft
-	nirsoftBaseDir := filepath.Join(globalDownloadDir, subDownload)
-	if err := addDefenderExclusion(nirsoftBaseDir); err != nil {
-		log.Printf("⚠️ Failed to add Defender exclusion for %s: %v", nirsoftBaseDir, err)
+	// Defender Exclusion
+	if err := addDefenderExclusion(nirsoftBase); err != nil {
+		log.Printf("⚠️ Failed to add Defender exclusion: %v", err)
 	} else {
-		fmt.Println("✅ Added Defender exclusion for:", nirsoftBaseDir)
+		fmt.Println("✅ Added Defender exclusion for:", nirsoftBase)
 	}
 
-	// First SafeTimeStamp (for copy)
-	rawTimestampCopy, err := gofunctions.DateTimeStamp()
-	if err != nil {
-		log.Fatalf("❌ Failed to generate copy timestamp: %v", err)
-	}
-	safeTimestampCopy := gofunctions.SafeTimeStamp(rawTimestampCopy, 1)
-
-	// Prepare copy target
-	copyDir := filepath.Join(nirsoftBaseDir, safeTimestampCopy)
+	// T1: Copy ZIP
+	rawT1, _ := gofunctions.DateTimeStamp()
+	T1 := gofunctions.SafeTimeStamp(rawT1, 1)
+	copyDir := filepath.Join(nirsoftBase, T1)
+	_ = os.MkdirAll(copyDir, os.ModePerm)
 	zipCopyPath := filepath.Join(copyDir, filepath.Base(zipSource))
+	_ = copyFile(zipSource, zipCopyPath)
+	fmt.Println("✅ Original ZIP copied to:", zipCopyPath)
 
-	if err := os.MkdirAll(copyDir, os.ModePerm); err != nil {
-		log.Fatalf("❌ Failed to create copy directory: %v", err)
-	}
-
-	// Copy the ZIP
-	if err := copyFile(zipSource, zipCopyPath); err != nil {
-		log.Fatalf("❌ Failed to copy ZIP file: %v", err)
-	}
-	fmt.Println("✅ ZIP copied to:", zipCopyPath)
-
-	// Second SafeTimeStamp (for extract)
-	rawTimestampExtract, err := gofunctions.DateTimeStamp()
-	if err != nil {
-		log.Fatalf("❌ Failed to generate extract timestamp: %v", err)
-	}
-	safeTimestampExtract := gofunctions.SafeTimeStamp(rawTimestampExtract, 1)
-
-	// Extract to: copyDir/safeTimestampExtract
-	extractDir := filepath.Join(copyDir, safeTimestampExtract)
+	// T2: Extract ZIP
+	rawT2, _ := gofunctions.DateTimeStamp()
+	T2 := gofunctions.SafeTimeStamp(rawT2, 1)
+	extractDir := filepath.Join(copyDir, T2)
 	if err := unzip(zipCopyPath, extractDir); err != nil {
 		log.Fatalf("❌ Failed to extract ZIP: %v", err)
 	}
-	fmt.Println("✅ ZIP extracted to:", extractDir)
+	fmt.Println("✅ Original ZIP extracted to:", extractDir)
+
+	// T3: Create protected ZIP
+	rawT3, _ := gofunctions.DateTimeStamp()
+	T3 := gofunctions.SafeTimeStamp(rawT3, 1)
+	secureDir := filepath.Join(nirsoftBase, T3)
+	_ = os.MkdirAll(secureDir, os.ModePerm)
+	secureZipPath := filepath.Join(secureDir, "nirsoft_package_enc_1.30.19.zip")
+	if err := zipWithPassword(extractDir, secureZipPath, "nirsoft9876$"); err != nil {
+		log.Fatalf("❌ Failed to create password-protected ZIP: %v", err)
+	}
+	fmt.Println("✅ Password-protected ZIP created:", secureZipPath)
+
+	// T4: Extract protected ZIP
+	rawT4, _ := gofunctions.DateTimeStamp()
+	T4 := gofunctions.SafeTimeStamp(rawT4, 1)
+	finalExtract := filepath.Join(secureDir, T4)
+	if err := unzipWithPassword(secureZipPath, finalExtract, "nirsoft9876$"); err != nil {
+		log.Fatalf("❌ Failed to extract protected ZIP: %v", err)
+	}
+	fmt.Println("✅ Password-protected ZIP extracted to:", finalExtract)
 }
 
-// copyFile copies a file from src to dst
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -97,14 +99,12 @@ func copyFile(src, dst string) error {
 			err = cerr
 		}
 	}()
-
 	if _, err := io.Copy(out, in); err != nil {
 		return err
 	}
 	return out.Sync()
 }
 
-// unzip extracts zipPath into destDir
 func unzip(zipPath, destDir string) error {
 	reader, err := zip.OpenReader(zipPath)
 	if err != nil {
@@ -118,25 +118,83 @@ func unzip(zipPath, destDir string) error {
 			return fmt.Errorf("illegal file path: %s", fullPath)
 		}
 		if file.FileInfo().IsDir() {
-			if err := os.MkdirAll(fullPath, os.ModePerm); err != nil {
-				return err
-			}
+			_ = os.MkdirAll(fullPath, os.ModePerm)
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(fullPath), os.ModePerm); err != nil {
-			return err
-		}
-		srcFile, err := file.Open()
-		if err != nil {
-			return err
-		}
+		_ = os.MkdirAll(filepath.Dir(fullPath), os.ModePerm)
+		srcFile, _ := file.Open()
 		defer srcFile.Close()
-		destFile, err := os.Create(fullPath)
+		destFile, _ := os.Create(fullPath)
+		defer destFile.Close()
+		_, _ = io.Copy(destFile, srcFile)
+	}
+	return nil
+}
+
+func zipWithPassword(sourceDir, outputZip, password string) error {
+	zipFile, err := os.Create(outputZip)
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	zipWriter := yekazip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	return filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		defer destFile.Close()
-		if _, err := io.Copy(destFile, srcFile); err != nil {
+		if info.IsDir() {
+			return nil
+		}
+		relPath, _ := filepath.Rel(sourceDir, path)
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		header, _ := yekazip.FileInfoHeader(info)
+		header.Name = relPath
+		header.Method = zip.Deflate
+
+		writer, err := zipWriter.Encrypt(header.Name, password, yekazip.AES256Encryption)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(writer, file)
+		return err
+	})
+}
+
+func unzipWithPassword(zipPath, destDir, password string) error {
+	r, err := yekazip.OpenReader(zipPath)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		f.SetPassword(password)
+		outPath := filepath.Join(destDir, f.Name)
+		if !strings.HasPrefix(outPath, filepath.Clean(destDir)+string(os.PathSeparator)) {
+			return fmt.Errorf("illegal file path: %s", outPath)
+		}
+		if f.FileInfo().IsDir() {
+			_ = os.MkdirAll(outPath, os.ModePerm)
+			continue
+		}
+		_ = os.MkdirAll(filepath.Dir(outPath), os.ModePerm)
+		dstFile, _ := os.Create(outPath)
+		defer dstFile.Close()
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		defer rc.Close()
+		_, err = io.Copy(dstFile, rc)
+		if err != nil {
 			return err
 		}
 	}
@@ -146,7 +204,6 @@ func unzip(zipPath, destDir string) error {
 func addDefenderExclusion(path string) error {
 	checkCmd := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
 		"-Command", fmt.Sprintf(`(Get-MpPreference).ExclusionPath -contains "%s"`, path))
-
 	var out bytes.Buffer
 	checkCmd.Stdout = &out
 	checkCmd.Stderr = &out
