@@ -10,6 +10,7 @@ import (
 	"time"
 	"fmt"
 	"path/filepath"
+	"archive/zip"
 	
 	yekazip "github.com/yeka/zip"
 	gofunctions "github.com/PeterCullenBurbery/go-functions"
@@ -374,4 +375,38 @@ Add-ToPath -PathToAdd 'C:\ProgramData\Miniconda3\Scripts\pip3.exe'
 `, modulePath, installerPath)
 
 	runPowerShellScript("install-miniconda.ps1", psContent, nil)
+}
+
+func unzip(src string, dest string) error {
+	r, err := zip.OpenReader(src)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	for _, f := range r.File {
+		path := filepath.Join(dest, f.Name)
+		if f.FileInfo().IsDir() {
+			_ = os.MkdirAll(path, os.ModePerm)
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+			return err
+		}
+		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
+		rc, err := f.Open()
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(outFile, rc)
+		outFile.Close()
+		rc.Close()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

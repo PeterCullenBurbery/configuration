@@ -1,5 +1,7 @@
 github.com/PeterCullenBurbery/go-functions v0.5.1 h1:jD6GX9XhyJVN0czjoYewaDAe8MrM8W0mnsKh1YuGRy4=
 github.com/PeterCullenBurbery/go-functions v0.5.1/go.mod h1:io6IHhm8CR+Y64eOkUsvsrVVHbz3/lnZK1lzg5H/j7M=
+github.com/PeterCullenBurbery/go_functions_002 v0.4.2 h1:njqizSzStMQ2TNx2K2KpnpBGBLxc1bdv4Bw60+bWNnM=
+github.com/PeterCullenBurbery/go_functions_002 v0.4.2/go.mod h1:uEYgjiL/JX6eqzMaIRGtfofEz4FB1bOMlyFJ9t441Vc=
 github.com/yeka/zip v0.0.0-20231116150916-03d6312748a9 h1:K8gF0eekWPEX+57l30ixxzGhHH/qscI3JCnuhbN6V4M=
 github.com/yeka/zip v0.0.0-20231116150916-03d6312748a9/go.mod h1:9BnoKCcgJ/+SLhfAXj15352hTOuVmG5Gzo8xNRINfqI=
 golang.org/x/crypto v0.39.0 h1:SHs+kF4LP+f+p14esP5jAoDpHU8Gu/v9lFRK6IT5imM=

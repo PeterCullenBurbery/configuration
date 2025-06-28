@@ -1,174 +1,138 @@
 package main
 
 import (
-	"archive/zip"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/PeterCullenBurbery/go_functions_002/system_management_functions"
 )
 
+type ProgramEntry struct {
+	Name         string   `yaml:"name"`
+	Alternatives []string `yaml:"alternatives"`
+	WingetID     string   `yaml:"winget id,omitempty"`
+	ChocoID      string   `yaml:"choco id,omitempty"`
+}
+
+type InstallYaml struct {
+	Install map[string]map[string]ProgramEntry `yaml:"install"`
+}
+
 func main() {
+	whatPath := flag.String("what", "", "Path to what-to-install.yaml (required)")
 	installPath := flag.String("install", "", "Path to install.yaml (required)")
-	modulePath := flag.String("module", "", "Path to PowerShell module (.psm1) (required)")
-	logPath := flag.String("log", "", "Path to runtime execution log file (required)")
+	logPath := flag.String("log", "", "Path to log file (required)")
 	flag.Parse()
 
-	if *installPath == "" || *modulePath == "" || *logPath == "" {
-		fmt.Println("❌ --install, --module, and --log are all required.")
+	if *whatPath == "" || *installPath == "" || *logPath == "" {
+		fmt.Println("❌ --what, --install, and --log are required.")
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	logFile, err := os.OpenFile(*logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		fmt.Printf("❌ Could not open log file: %v\n", err)
+		fmt.Printf("❌ Failed to open log file: %v\n", err)
 		os.Exit(1)
 	}
 	defer logFile.Close()
 	log.SetOutput(io.MultiWriter(os.Stdout, logFile))
 
-	log.Println("🍫 Installing Chocolatey using Install-Choco...")
-	psContent := fmt.Sprintf("Import-Module '%s'\nInstall-Choco\n", *modulePath)
-	runPowerShellScript("install-choco.ps1", psContent, logFile)
-	log.Println("✅ Chocolatey installation complete.")
-
-	var raw map[string]interface{}
-	data, err := os.ReadFile(*installPath)
+	// Load install.yaml
+	var installData InstallYaml
+	rawInstallData, err := os.ReadFile(*installPath)
 	if err != nil {
-		log.Fatalf("❌ Failed to read YAML: %v", err)
+		log.Fatalf("❌ Failed to read install.yaml: %v", err)
 	}
-	if err := yaml.Unmarshal(data, &raw); err != nil {
-		log.Fatalf("❌ Failed to parse YAML: %v", err)
+	if err := yaml.Unmarshal(rawInstallData, &installData); err != nil {
+		log.Fatalf("❌ Failed to parse install.yaml: %v", err)
 	}
 
-	installSection := getCaseInsensitiveMap(raw, "install")
+	// Build lookup maps
+	altToCanonical := make(map[string]string)
+	canonicalToMeta := make(map[string]ProgramEntry)
+	canonicalToCategory := make(map[string]string)
+
+	for category, programs := range installData.Install {
+		for canonical, meta := range programs {
+			canonicalTrimmed := strings.TrimSpace(canonical)
+			canonicalToMeta[canonicalTrimmed] = meta
+			canonicalToCategory[canonicalTrimmed] = category
+			altToCanonical[strings.ToLower(canonicalTrimmed)] = canonicalTrimmed
+			for _, alt := range meta.Alternatives {
+				altToCanonical[strings.ToLower(strings.TrimSpace(alt))] = canonicalTrimmed
+			}
+		}
+	}
+
+	// Load what-to-install.yaml
+	whatData := make(map[string]interface{})
+	rawWhatData, err := os.ReadFile(*whatPath)
+	if err != nil {
+		log.Fatalf("❌ Failed to read what-to-install.yaml: %v", err)
+	}
+	if err := yaml.Unmarshal(rawWhatData, &whatData); err != nil {
+		log.Fatalf("❌ Failed to parse what-to-install.yaml: %v", err)
+	}
+
+	installSection := getCaseInsensitiveMap(whatData, "install")
 	if installSection == nil {
-		log.Fatal("❌ Missing 'install' section.")
+		log.Fatal("❌ Missing 'install' section in what-to-install.yaml.")
 	}
+	requested := getCaseInsensitiveList(installSection, "programs to install")
 
-	programs := getCaseInsensitiveList(installSection, "programs to install")
-	logs := getCaseInsensitiveMap(installSection, "logs")
-	downloads := getCaseInsensitiveMap(installSection, "downloads")
-
-	globalLogDir := strings.TrimSpace(getNestedString(logs, "global log directory"))
-	perAppLogs := getNestedMap(logs, "per app log directories")
-	globalDownloadDir := strings.TrimSpace(getNestedString(downloads, "global download directory"))
-	perAppDownloads := getNestedMap(downloads, "per app download directories")
-
-	if globalLogDir == "" || globalDownloadDir == "" {
-		log.Fatal("❌ Missing 'global log directory' or 'global download directory'.")
-	}
-
-	_ = os.MkdirAll(globalLogDir, os.ModePerm)
-	_ = os.MkdirAll(globalDownloadDir, os.ModePerm)
-
-	for _, label := range programs {
-		if strings.EqualFold(label, "Choco") {
-			continue // ✅ Already handled above
-		}
-
-		funcName := toInstallFunctionName(label)
-		if funcName != "" {
-			log.Printf("➡️  Starting: %s → %s", label, funcName)
-		} else if funcName == "" {
-			log.Printf("➡️  Starting: %s", label)
-		}
-
-		switch {
-		case strings.EqualFold(label, "SQL Developer"):
-			handleSQLDeveloper(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
-
-		case strings.EqualFold(label, "Nirsoft"):
-			handleNirsoft(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
-
-		case strings.EqualFold(funcName, "Install-CherryTree"):
-			handleCherryTree(globalLogDir, perAppLogs, globalDownloadDir, perAppDownloads, *modulePath)
-
-			// Miniconda does not take logs.
-		case strings.EqualFold(funcName, "Install-Miniconda"):
-			handleMiniconda(globalDownloadDir, perAppDownloads, *modulePath)
-		default:
-			scriptName := fmt.Sprintf("install-%s.ps1", strings.ToLower(strings.ReplaceAll(label, " ", "-")))
-			psContent := fmt.Sprintf("Import-Module '%s'\n%s\n", *modulePath, funcName)
-			runPowerShellScript(scriptName, psContent, logFile)
-		}
-	}
-
-	log.Println("🎉 All installations completed.")
-}
-
-// --- Helper functions ---
-
-func unzip(src string, dest string) error {
-	r, err := zip.OpenReader(src)
-	if err != nil {
-		return err
-	}
-	defer r.Close()
-
-	for _, f := range r.File {
-		path := filepath.Join(dest, f.Name)
-		if f.FileInfo().IsDir() {
-			_ = os.MkdirAll(path, os.ModePerm)
+	// Process programs
+	for _, req := range requested {
+		lookup := strings.ToLower(strings.TrimSpace(req))
+		canonical, ok := altToCanonical[lookup]
+		if !ok {
+			log.Printf("❌ Unsupported program: %s (skipped)", req)
 			continue
 		}
-		if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
-			return err
-		}
-		outFile, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
-		if err != nil {
-			return err
-		}
-		rc, err := f.Open()
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(outFile, rc)
-		outFile.Close()
-		rc.Close()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
 
-func toInstallFunctionName(label string) string {
-	l := strings.ToLower(strings.NewReplacer(" ", "", "-", "", "+", "").Replace(label))
-	switch l {
-	case "powershell7":
-		return "Install-PowerShell-7"
-	case "vscode":
-		return "Install-VSCode"
-	case "7zip":
-		return "Install-7Zip"
-	case "voidtoolseverything":
-		return "Install-Voidtools-Everything"
-	case "winscp":
-		return "Install-WinSCP"
-	case "mobaxterm":
-		return "Install-MobaXterm"
-	case "choco", "chocolatey":
-		return "Install-Choco"
-	case "cherrytree":
-		return "Install-CherryTree"
-	case "go":
-		return "Install-Go"
-	case "notepadpp", "notepadplusplus", "notepad":
-		return "Install-NotepadPP"
-	case "sqlitebrowser", "sqlite", "sqlitebrowserforsqlite", "dbbrowser":
-		return "Install-SQLiteBrowser"
-	case "python", "miniconda":
-		return "Install-Miniconda"
-	case "java":
-		return "Install-Java"
-	default:
-		return "Install-" + strings.Title(l)
+		category := canonicalToCategory[canonical]
+		meta := canonicalToMeta[canonical]
+
+		log.Printf("✅ Supported program: %s → %s (category: %s)", req, canonical, category)
+
+		switch category {
+		case "automatically installed":
+			log.Printf("ℹ️  %s is already installed automatically. Skipping.", canonical)
+
+		case "winget":
+			if meta.WingetID == "" {
+				log.Printf("⚠️ Missing Winget ID for %s", canonical)
+				continue
+			}
+			err := system_management_functions.Winget_install(canonical, meta.WingetID)
+			if err != nil {
+				log.Printf("❌ Winget install failed for %s: %v", canonical, err)
+			} else {
+				log.Printf("✅ Installed %s via Winget.", canonical)
+			}
+
+		case "choco":
+			if meta.ChocoID == "" {
+				log.Printf("⚠️ Missing Choco ID for %s", canonical)
+				continue
+			}
+			err := system_management_functions.Choco_install(meta.ChocoID)
+			if err != nil {
+				log.Printf("❌ Chocolatey install failed for %s: %v", canonical, err)
+			} else {
+				log.Printf("✅ Installed %s via Chocolatey.", canonical)
+			}
+
+		default:
+			log.Printf("⚠️ Unknown or unhandled category '%s' for %s", category, canonical)
+		}
 	}
+
+	log.Println("🎉 Installation process finished.")
 }
