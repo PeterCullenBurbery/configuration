@@ -74,7 +74,11 @@ func main() {
 		}
 
 		funcName := toInstallFunctionName(label)
-		log.Printf("➡️  Starting: %s → %s", label, funcName)
+		if funcName != "" {
+			log.Printf("➡️  Starting: %s → %s", label, funcName)
+		} else if funcName == "" {
+			log.Printf("➡️  Starting: %s", label)
+		}
 
 		switch {
 		case strings.EqualFold(label, "SQL Developer"):

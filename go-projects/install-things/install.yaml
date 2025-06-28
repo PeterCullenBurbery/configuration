@@ -1,0 +1,20 @@
+install:
+  automatically installed:
+    - choco
+  # Java could be in this group in the future. It would be choco and java.
+  handled:
+    - cherrytree
+    - miniconda
+    - sql developer
+    - nirsoft
+  function:
+    - powershell7
+    - vscode
+    - 7zip
+    - voidtoolseverything
+    - winscp
+    - mobaxterm
+    - go
+    - notepadpp
+    - sqlitebrowser
+    - java
