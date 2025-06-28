@@ -63,19 +63,24 @@ if ((Test-Path $explorer_exe) -and (Test-Path $config_path) -and (Test-Path $psm
 }
 
 # --- Step 4: Run install-things.exe ---
-$install_exe = Join-Path $base_path "go-projects\install-things\install-things.exe"
-$install_log = Join-Path $env:TEMP "$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')_install-things.log"
 
-if ((Test-Path $install_exe) -and (Test-Path $install_path) -and (Test-Path $psm1_path)) {
+$what_path    = Join-Path $base_path "what-to-install.yaml"
+$install_path = Join-Path $base_path "install.yaml"
+$install_exe  = Join-Path $base_path "go-projects\install-things\install-things.exe"
+$install_log  = Join-Path $env:TEMP "$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')_install-things.log"
+
+if ((Test-Path $install_exe) -and (Test-Path $what_path) -and (Test-Path $install_path)) {
     $start = Get-Date
     Write-Host "🔧 Running install-things.exe..."
+
     Start-Process -FilePath $install_exe `
-        -ArgumentList "--install", "`"$install_path`"", "--module", "`"$psm1_path`"", "--log", "`"$install_log`"" `
+        -ArgumentList "--what", "`"$what_path`"", "--install", "`"$install_path`"", "--log", "`"$install_log`"" `
         -Wait
+
     $end = Get-Date
     Write-Host "✅ install-things completed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
 } else {
-    Write-Error "❌ Missing files for install-things"
+    Write-Error "❌ Missing install-things.exe, what-to-install.yaml, or install.yaml"
 }
 
 # --- Step 5: Run config tools (no arguments) ---
