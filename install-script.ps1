@@ -62,16 +62,16 @@ if ((Test-Path $explorer_exe) -and (Test-Path $config_path) -and (Test-Path $psm
     Write-Error "❌ Missing files for customize-file-explorer"
 }
 
-# --- Step 4: Run install-things.exe ---
+# --- Step 4: Run install_006.exe ---
 
 $what_path    = Join-Path $base_path "what-to-install.yaml"
 $install_path = Join-Path $base_path "install.yaml"
-$install_exe  = Join-Path $base_path "go-projects\install-things\install-things.exe"
-$install_log  = Join-Path $env:TEMP "$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')_install-things.log"
+$install_exe  = Join-Path $base_path "go-projects\install\install_006\install_006.exe"
+$install_log  = Join-Path $env:TEMP "$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss')_install_006.log"
 
 if ((Test-Path $install_exe) -and (Test-Path $what_path) -and (Test-Path $install_path)) {
     $start = Get-Date
-    Write-Host "🔧 Running install-things.exe..."
+    Write-Host "🔧 Running install_006.exe..."
 
     Start-Process -FilePath $install_exe `
         -ArgumentList "--what", "`"$what_path`"", "--install", "`"$install_path`"", "--log", "`"$install_log`"" `
@@ -80,7 +80,7 @@ if ((Test-Path $install_exe) -and (Test-Path $what_path) -and (Test-Path $instal
     $end = Get-Date
     Write-Host "✅ install-things completed in $([math]::Round(($end - $start).TotalSeconds, 2)) seconds."
 } else {
-    Write-Error "❌ Missing install-things.exe, what-to-install.yaml, or install.yaml"
+    Write-Error "❌ Missing install_006.exe, what-to-install.yaml, or install.yaml"
 }
 
 # --- Step 5: Run config tools (no arguments) ---
@@ -105,7 +105,7 @@ foreach ($tool_rel in $config_tools) {
 
 # --- Step 6: Update PowerShell profiles ---
 $ps7_profile_exe = Join-Path $base_path "go-projects\powershell-007-profile\powershell-007-profile.exe"
-$ps5_profile_exe = Join-Path $base_path "go-projects\powershell-005-profile\powershell-005-profile.exe"
+$ps5_profile_exe = Join-Path $base_path "go-projects\powershell-006-profile\powershell-006-profile.exe"
 
 if (Test-Path $ps5_profile_exe) {
     Write-Host "📜 Running PowerShell 5 profile updater..."
