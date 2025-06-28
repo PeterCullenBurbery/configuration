@@ -1,0 +1,20 @@
+install:
+  winget:
+    - PowerShell 7
+    - VS code
+    - 7 zip
+    - Voidtools everything
+    - WinSCP
+  Choco:
+    - MobaXTerm
+    - Go
+    - Notepad++
+    - SQLiteBrowser
+    - Java
+  auto:
+    - Choco
+  handled:
+    - Cherry tree
+    - Miniconda
+    - SQL Developer
+    - Nirsoft
